@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
 import os
+import json
+
 
 load_dotenv()
 
@@ -28,17 +30,27 @@ def chat(req: ChatRequest):
         "Content-Type": "application/json"
     }
 
-    messages.append({
-        "role": "user",
-        "content": req.message
-    })
-
     full_messages =[
         {
             "role":"system",
-            "content":"你是一个专业的旅游规划师,擅长生成旅行攻略"
-        }
-    ] +messages
+            "content":"""
+        你是旅行信息提取助手。
+
+        你的任务是：
+        从用户输入中提取：
+        1. destination
+        2. days
+        3. budget
+
+        必须返回JSON格式。
+        不要输出任何解释。
+        """
+        },
+        {
+        "role": "user",
+        "content": req.message
+    }
+    ]
 
     data = {
         "model": "deepseek-chat",
@@ -50,15 +62,68 @@ def chat(req: ChatRequest):
     result = response.json()
 
     ai_reply = result["choices"][0]["message"]["content"]
+    
+    try:
+        parsed_data = json.loads(ai_reply)
 
-    messages.append({
-        "role": "assistant",
-        "content": ai_reply
-    })
+        city = parsed_data["destination"]
+        days = parsed_data["days"]
+        budget = parsed_data["budget"]
 
-    return {
-        "user_message": req.message,
-        "ai_response": ai_reply
+        if city == "成都":
+            spots = ["宽窄巷子", "大熊猫基地", "春熙路"]
+
+        elif city == "北京":
+            spots = ["故宫", "颐和园", "天安门"]
+
+        else:
+            spots = "推荐当地热门景点"
+
+    except Exception as e:
+        return {
+        "error": "AI返回的不是正确JSON",
+        "raw_reply": ai_reply
     }
 
+    plan_prompt = f"""
+    请根据以下信息生成详细旅游攻略：
+
+    城市：{city}
+    天数：{days}
+    预算：{budget}
+
+    推荐景点：
+    {spots}
+
+    请按Day1 Day2格式输出。
+    """
+
+    plan_data = {
+        "model": "deepseek-chat",
+        "messages": [
+            {
+            "role":"system",
+            "content":"你是专业旅游规划师"
+            },
+            {
+            "role":"user",
+            "content": plan_prompt
+            }
+        ]
+    }
+
+    plan_response = requests.post(
+    url,
+    headers=headers,
+    json=plan_data
+    )
+
+    plan_result = plan_response.json()
+
+    travel_plan = plan_result["choices"][0]["message"]["content"]
+
+    return {
+    "parsed_data": parsed_data,
+    "travel_plan": travel_plan
+    }
     
