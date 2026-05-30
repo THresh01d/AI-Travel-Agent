@@ -10,6 +10,7 @@ load_dotenv()
 
 app = FastAPI()
 messages = []
+user_profile = {}
 
 class ChatRequest(BaseModel):
     message: str
@@ -30,17 +31,46 @@ def chat(req: ChatRequest):
         "Content-Type": "application/json"
     }
 
-    full_messages =[
+    messages =[
         {
             "role":"system",
             "content":"""
-        你是旅行信息提取助手。
+        你是旅行信息和用户偏好提取助手。
 
         你的任务是：
         从用户输入中提取：
         1. destination
         2. days
         3. budget
+        4. profile
+        关于4.profile例如：
+        我喜欢自由行
+        返回：
+        {{
+            "travel_style":"自由行"
+        }}
+        我不喜欢早起
+        返回：
+        {{
+            "wake_up":"晚起"
+        }}
+        我钱不是很多
+        返回:{{
+            "budget_level":"低"
+        }}
+        如果用户没有输入他想去什么地方而是只说了它的profile,比如:我喜欢自由行
+        就返回:
+            {
+            "destination": null,
+            "days": null,
+            "budget": null,
+            "profile": {
+                "travel_style": "自由行"
+            }
+        }
+        如果没有偏好信息：
+        返回：
+        {{}}
 
         必须返回JSON格式。
         不要输出任何解释。
@@ -54,7 +84,7 @@ def chat(req: ChatRequest):
 
     data = {
         "model": "deepseek-chat",
-        "messages": full_messages
+        "messages": messages
     }
 
     response = requests.post(url, headers=headers, json=data)
@@ -66,9 +96,15 @@ def chat(req: ChatRequest):
     try:
         parsed_data = json.loads(ai_reply)
 
-        city = parsed_data["destination"]
-        days = parsed_data["days"]
-        budget = parsed_data["budget"]
+        city = parsed_data.get("destination")
+        days = parsed_data.get("days")
+        budget = parsed_data.get("budget")
+        profile = parsed_data.get(
+            "profile",
+            {}
+        )
+        user_profile.update(profile)
+        print(user_profile)
 
         city_spots = {
             "北京": ["故宫","天安门","颐和园"],
@@ -91,45 +127,54 @@ def chat(req: ChatRequest):
         "raw_reply": ai_reply
     }
 
-    plan_prompt = f"""
-    请根据以下信息生成详细旅游攻略：
-
-    城市：{city}
-    天数：{days}
-    预算：{budget}
-
-    推荐景点：
-    {spots}
-
-    请按Day1 Day2格式输出。
-    """
-
-    plan_data = {
-        "model": "deepseek-chat",
-        "messages": [
-            {
-            "role":"system",
-            "content":"你是专业旅游规划师"
-            },
-            {
-            "role":"user",
-            "content": plan_prompt
-            }
-        ]
+    if city is None or days is None:
+        return {
+        "message":"用户偏好已保存",
+        "parsed_data": parsed_data
     }
 
-    plan_response = requests.post(
-    url,
-    headers=headers,
-    json=plan_data
-    )
+    else:
+        plan_prompt = f"""
+        请根据以下信息生成详细旅游攻略：
 
-    plan_result = plan_response.json()
+        城市：{city}
+        天数：{days}
+        预算：{budget}
+        用户偏好:{user_profile}
 
-    travel_plan = plan_result["choices"][0]["message"]["content"]
+        推荐景点：
+        {spots}
 
-    return {
-    "parsed_data": parsed_data,
-    "travel_plan": travel_plan
-    }
-    
+        请按Day1 Day2格式输出。
+        """
+
+        plan_data = {
+            "model": "deepseek-chat",
+            "messages": [
+                {
+                "role":"system",
+                "content":"你是专业旅游规划师"
+                },
+                {
+                "role":"user",
+                "content": plan_prompt
+                }
+            ]
+        }
+
+        plan_response = requests.post(
+        url,
+        headers=headers,
+        json=plan_data
+        )
+
+        plan_result = plan_response.json()
+
+        travel_plan = plan_result["choices"][0]["message"]["content"]
+
+        return {
+        "parsed_data": parsed_data,
+        "saved_profile": user_profile,
+        "travel_plan": travel_plan
+        }
+        
