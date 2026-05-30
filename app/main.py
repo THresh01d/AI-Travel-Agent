@@ -70,14 +70,20 @@ def chat(req: ChatRequest):
         days = parsed_data["days"]
         budget = parsed_data["budget"]
 
-        if city == "成都":
-            spots = ["宽窄巷子", "大熊猫基地", "春熙路"]
+        city_spots = {
+            "北京": ["故宫","天安门","颐和园"],
+            "成都": ["宽窄巷子","熊猫基地","春熙路"],
+            "上海": ["外滩","东方明珠","豫园"],
+            "杭州": ["西湖","灵隐寺","河坊街"],
+            "重庆": ["洪崖洞","解放碑","磁器口"],
+            "西安": ["兵马俑","大雁塔","回民街"],
+            "南京":["夫子庙","玄武湖","鸡鸣寺"]
+        }
 
-        elif city == "北京":
-            spots = ["故宫", "颐和园", "天安门"]
-
-        else:
-            spots = "推荐当地热门景点"
+        spots = city_spots.get(
+            city,
+            ["当地热门景点"]
+        )
 
     except Exception as e:
         return {
