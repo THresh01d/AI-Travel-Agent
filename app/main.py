@@ -36,7 +36,6 @@ def chat(req: ChatRequest):
             "role":"system",
             "content":"""
         你是旅行信息和用户偏好提取助手。
-
         你的任务是：
         从用户输入中提取：
         1. destination
