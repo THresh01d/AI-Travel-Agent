@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import pymysql
+from .database import save_profile
+from .database import load_profile
+from .knowledge_base import city_spots
 import requests
 import os
 import json
@@ -10,79 +12,16 @@ import json
 load_dotenv()
 
 app = FastAPI()
-messages = []
-user_profile = {}
 
 class ChatRequest(BaseModel):
     message: str
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-def get_connection():
-    return pymysql.connect(
-        host=os.getenv("MYSQL_HOST"),
-        user=os.getenv("MYSQL_USER"),
-        password=os.getenv("MYSQL_PASSWORD"),
-        database=os.getenv("MYSQL_DATABASE"),
-        charset="utf8mb4"
-    )
 
 @app.get("/")
 def home():
     return {"message": "AI Travel Agent Running"}
-
-def save_profile(profile):
-
-    conn = get_connection()
-
-    cursor = conn.cursor()
-
-    for key, value in profile.items():
-
-        sql = """
-        INSERT INTO user_profile
-        (profile_key, profile_value)
-        VALUES (%s, %s)
-        """
-
-        cursor.execute(
-            sql,
-            (key, value)
-        )
-
-    conn.commit()
-
-    cursor.close()
-    conn.close()
-
-def load_profile():
-
-    conn = get_connection()
-
-    cursor = conn.cursor()
-
-    sql = """
-    SELECT profile_key, profile_value
-    FROM user_profile
-    """
-
-    cursor.execute(sql)
-
-    results = cursor.fetchall()
-
-    profile = {}
-
-    for row in results:
-
-        key = row[0]
-        value = row[1]
-
-        profile[key] = value
-
-    cursor.close()
-    conn.close()
-
-    return profile
 
 @app.post("/chat")
 def chat(req: ChatRequest):
@@ -163,8 +102,6 @@ def chat(req: ChatRequest):
             {}
         )
 
-        user_profile.update(profile)
-
         if profile:
             save_profile(profile)
         
@@ -173,18 +110,6 @@ def chat(req: ChatRequest):
         city = parsed_data.get("destination")
         days = parsed_data.get("days")
         budget = parsed_data.get("budget")
-
-        print(user_profile)
-
-        city_spots = {
-            "北京": ["故宫","天安门","颐和园"],
-            "成都": ["宽窄巷子","熊猫基地","春熙路"],
-            "上海": ["外滩","东方明珠","豫园"],
-            "杭州": ["西湖","灵隐寺","河坊街"],
-            "重庆": ["洪崖洞","解放碑","磁器口"],
-            "西安": ["兵马俑","大雁塔","回民街"],
-            "南京":["夫子庙","玄武湖","鸡鸣寺"]
-        }
 
         spots = city_spots.get(
             city,
