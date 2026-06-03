@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 
 from app.database import save_profile
 from app.database import load_profile
+from app.database import create_user
+from app.database import get_user_by_username
 from app.knowledge_base import city_spots
 
 from app.services.ai_service import extract_travel_info
@@ -11,6 +13,7 @@ from app.services.ai_service import generate_plan
 
 import os
 
+current_user_id = None
 
 load_dotenv()
 
@@ -19,12 +22,63 @@ app = FastAPI()
 class ChatRequest(BaseModel):
     message: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 
 @app.get("/")
 def home():
     return {"message": "AI Travel Agent Running"}
+
+@app.post("/register")
+def register(req: RegisterRequest):
+
+    user = get_user_by_username(
+        req.username
+    )
+
+    if user:
+        return {
+            "message": "用户名已存在"
+        }
+
+    create_user(
+        req.username,
+        req.password
+    )
+
+    return {
+        "message": "注册成功"
+    }
+
+@app.post("/login")
+def login(req: RegisterRequest):
+
+    global current_user_id
+
+    user = get_user_by_username(
+        req.username
+    )
+
+    if not user:
+        return {
+            "message": "用户不存在"
+        }
+
+    if user[2] != req.password:
+        return {
+            "message": "密码错误"
+        }
+
+    current_user_id = user[0]
+
+    return {
+        "message": "登录成功",
+        "user_id": current_user_id
+    }
 
 @app.post("/chat")
 def chat(req: ChatRequest):
@@ -42,14 +96,21 @@ def chat(req: ChatRequest):
 
         print(profile)
         print(type(profile))
+        
+        if current_user_id is None:
+            return {
+                "message": "请先登录"
+            }
 
         if profile:
             save_profile(
-            user_id=1,
-            profile=profile
-        )
+                user_id=current_user_id,
+                profile=profile
+            )
 
-        saved_profile = load_profile(user_id=1)
+        saved_profile = load_profile(
+            user_id=current_user_id
+        )
 
         city = parsed_data.get("destination")
         days = parsed_data.get("days")

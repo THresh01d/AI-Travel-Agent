@@ -72,3 +72,49 @@ def load_profile(user_id):
     conn.close()
 
     return profile
+
+def create_user(username, password):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    sql = """
+    INSERT INTO users
+    (username, password)
+    VALUES (%s, %s)
+    """
+
+    cursor.execute(
+        sql,
+        (username, password)
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+def get_user_by_username(username):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    sql = """
+    SELECT id, username, password
+    FROM users
+    WHERE username = %s
+    """
+
+    cursor.execute(
+        sql,
+        (username,)
+    )
+
+    result = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return result
