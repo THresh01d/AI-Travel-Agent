@@ -11,7 +11,7 @@ def get_connection():
         charset="utf8mb4"
     )
 
-def save_profile(profile):
+def save_profile( user_id, profile):
 
     conn = get_connection()
 
@@ -21,14 +21,18 @@ def save_profile(profile):
 
         sql = """
         INSERT INTO user_profile
-        (profile_key, profile_value)
-        VALUES (%s, %s)
+        (user_id, profile_key, profile_value)
+        VALUES (%s, %s, %s)
         """
 
         cursor.execute(
-            sql,
-            (key, value)
+        sql,
+        (
+            user_id,
+            key,
+            value
         )
+    )
 
     conn.commit()
 
@@ -36,7 +40,7 @@ def save_profile(profile):
     conn.close()
 
 
-def load_profile():
+def load_profile(user_id):
 
     conn = get_connection()
 
@@ -45,9 +49,13 @@ def load_profile():
     sql = """
     SELECT profile_key, profile_value
     FROM user_profile
+    WHERE user_id = %s
     """
 
-    cursor.execute(sql)
+    cursor.execute(
+        sql,
+        (user_id,)
+    )
 
     results = cursor.fetchall()
 
