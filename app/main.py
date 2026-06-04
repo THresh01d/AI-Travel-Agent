@@ -6,6 +6,8 @@ from app.database import save_profile
 from app.database import load_profile
 from app.database import create_user
 from app.database import get_user_by_username
+from app.database import save_history
+from app.database import load_history
 from app.knowledge_base import city_spots
 
 from app.services.ai_service import extract_travel_info
@@ -96,7 +98,7 @@ def chat(req: ChatRequest):
 
         print(profile)
         print(type(profile))
-        
+
         if current_user_id is None:
             return {
                 "message": "请先登录"
@@ -115,6 +117,13 @@ def chat(req: ChatRequest):
         city = parsed_data.get("destination")
         days = parsed_data.get("days")
         budget = parsed_data.get("budget")
+        if city:
+            save_history(
+                current_user_id,
+                city,
+                days,
+                budget
+            )
 
         spots = city_spots.get(
             city,
@@ -145,4 +154,56 @@ def chat(req: ChatRequest):
         "parsed_data": parsed_data,
         "saved_profile": saved_profile,
         "travel_plan": travel_plan
+    }
+
+@app.get("/history")
+def history():
+
+    global current_user_id
+
+    if current_user_id is None:
+
+        return {
+            "message": "请先登录"
+        }
+
+    results = load_history(
+        current_user_id
+    )
+
+    history_list = []
+
+    for row in results:
+
+        history_list.append(
+            {
+                "destination": row[0],
+                "days": row[1],
+                "budget": row[2],
+                "created_time": str(row[3])
+            }
+        )
+
+    return {
+        "user_id": current_user_id,
+        "history": history_list
+    }
+
+@app.get("/profile")
+def profile():
+
+    global current_user_id
+
+    if current_user_id is None:
+        return {
+            "message": "请先登录"
+        }
+
+    profile_data = load_profile(
+        current_user_id
+    )
+
+    return {
+        "user_id": current_user_id,
+        "profile": profile_data
     }

@@ -118,3 +118,64 @@ def get_user_by_username(username):
     conn.close()
 
     return result
+
+def save_history(
+    user_id,
+    destination,
+    days,
+    budget
+):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    sql = """
+    INSERT INTO travel_history
+    (user_id,destination,days,budget)
+    VALUES (%s,%s,%s,%s)
+    """
+
+    cursor.execute(
+        sql,
+        (
+            user_id,
+            destination,
+            days,
+            budget
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+def load_history(user_id):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    sql = """
+    SELECT
+    destination,
+    days,
+    budget,
+    created_time
+    FROM travel_history
+    WHERE user_id = %s
+    ORDER BY created_time DESC
+    """
+
+    cursor.execute(
+        sql,
+        (user_id,)
+    )
+
+    results = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return results
