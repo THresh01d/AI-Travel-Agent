@@ -12,6 +12,11 @@ from app.knowledge_base import city_spots
 
 from app.services.ai_service import extract_travel_info
 from app.services.ai_service import generate_plan
+from app.services.agent_service import get_user_profile
+from app.services.agent_service import get_user_history
+from app.services.tool_router import choose_tool
+from app.services.summary_service import summarize_profile
+from app.services.summary_service import summarize_history
 
 import os
 
@@ -155,6 +160,99 @@ def chat(req: ChatRequest):
         "saved_profile": saved_profile,
         "travel_plan": travel_plan
     }
+
+@app.post("/agent")
+def agent(req: ChatRequest):
+
+    global current_user_id
+
+    if current_user_id is None:
+        return {
+            "message":"请先登录"
+        }
+
+    question = req.message
+
+    tool_result = choose_tool(
+        DEEPSEEK_API_KEY,
+        question
+    )
+
+    tool = tool_result["tool"]
+
+    print(tool)
+
+    if tool == "history":
+
+        history = get_user_history(
+            current_user_id
+        )
+
+        answer = summarize_history(
+            DEEPSEEK_API_KEY,
+            history
+        )
+
+        return {
+            "answer": answer
+        }
+
+    if tool == "profile":
+
+        profile = get_user_profile(
+            current_user_id
+        )
+
+        answer = summarize_profile(
+            DEEPSEEK_API_KEY,
+            profile
+        )
+
+        return {
+            "answer": answer
+        }
+
+    elif tool == "travel":
+
+        parsed_data = extract_travel_info(
+            DEEPSEEK_API_KEY,
+            req.message
+        )
+
+        city = parsed_data.get("destination")
+        days = parsed_data.get("days")
+        budget = parsed_data.get("budget")
+
+        saved_profile = load_profile(
+            current_user_id
+        )
+
+        spots = city_spots.get(
+            city,
+            ["当地热门景点"]
+        )
+
+        travel_plan = generate_plan(
+            DEEPSEEK_API_KEY,
+            city,
+            days,
+            budget,
+            saved_profile,
+            spots
+        )
+
+        save_history(
+            current_user_id,
+            city,
+            days,
+            budget
+        )
+
+        return {
+            "tool":"travel",
+            "travel_plan":travel_plan
+        }
+    
 
 @app.get("/history")
 def history():

@@ -96,18 +96,18 @@ def generate_plan(
     }
 
     plan_prompt = f"""
-请根据以下信息生成详细旅游攻略：
+    请根据以下信息生成详细旅游攻略：
 
-城市：{city}
-天数：{days}
-预算：{budget}
-用户偏好：{profile}
+    城市：{city}
+    天数：{days}
+    预算：{budget}
+    用户偏好：{profile}
 
-推荐景点：
-{spots}
+    推荐景点：
+    {spots}
 
-请按Day1 Day2格式输出。
-"""
+    请按Day1 Day2格式输出。
+    """
 
     data = {
         "model": "deepseek-chat",
