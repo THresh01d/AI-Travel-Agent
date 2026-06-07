@@ -17,6 +17,8 @@ from app.services.agent_service import get_user_history
 from app.services.tool_router import choose_tool
 from app.services.summary_service import summarize_profile
 from app.services.summary_service import summarize_history
+from app.services.recommend_service import recommend_city
+from app.services.analysis_service import analyze_user
 
 import os
 
@@ -190,6 +192,46 @@ def agent(req: ChatRequest):
 
         answer = summarize_history(
             DEEPSEEK_API_KEY,
+            history
+        )
+
+        return {
+            "answer": answer
+        }
+
+    if tool == "recommend":
+
+        profile = load_profile(
+            current_user_id
+        )
+
+        history = get_user_history(
+            current_user_id
+        )
+
+        answer = recommend_city(
+            DEEPSEEK_API_KEY,
+            profile,
+            history
+        )
+
+        return {
+            "answer": answer
+        }
+    
+    if tool == "analysis":
+
+        profile = load_profile(
+            current_user_id
+        )
+
+        history = get_user_history(
+            current_user_id
+        )
+
+        answer = analyze_user(
+            DEEPSEEK_API_KEY,
+            profile,
             history
         )
 

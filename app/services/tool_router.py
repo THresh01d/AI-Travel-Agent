@@ -52,6 +52,31 @@ def choose_tool(api_key, question):
         {
             "tool":"travel"
         }
+
+        recommend
+        当用户询问：
+        -推荐城市
+        -适合去哪玩
+        -推荐旅游地点
+        -下次去哪旅游
+
+        返回：
+        {
+            "tool":"recommend"
+        }
+
+        analysis
+        如果用户询问：
+        分析我的旅行习惯
+        分析我的旅游偏好
+        总结我的出行风格
+        我的旅行画像是什么
+
+        返回：
+        {
+            "tool":"analysis"
+        }
+
         不要输出解释。
         """
         },
