@@ -19,10 +19,10 @@ from app.services.summary_service import summarize_profile
 from app.services.summary_service import summarize_history
 from app.services.recommend_service import recommend_city
 from app.services.analysis_service import analyze_user
+from app.services.auth_service import create_token
+from app.services.auth_service import verify_token
 
 import os
-
-current_user_id = None
 
 load_dotenv()
 
@@ -30,10 +30,18 @@ app = FastAPI()
 
 class ChatRequest(BaseModel):
     message: str
+    token: str
 
 class RegisterRequest(BaseModel):
     username: str
     password: str
+
+class TokenRequest(BaseModel):
+    token: str
+
+class AgentRequest(BaseModel):
+    message: str
+    token: str
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
@@ -66,8 +74,6 @@ def register(req: RegisterRequest):
 @app.post("/login")
 def login(req: RegisterRequest):
 
-    global current_user_id
-
     user = get_user_by_username(
         req.username
     )
@@ -82,15 +88,43 @@ def login(req: RegisterRequest):
             "message": "密码错误"
         }
 
-    current_user_id = user[0]
+    token = create_token(
+        user[0]
+    )
 
     return {
         "message": "登录成功",
-        "user_id": current_user_id
+        "token": token
+    }
+
+@app.post("/me")
+def me(req: TokenRequest):
+
+    user_id = verify_token(
+        req.token
+    )
+
+    if not user_id:
+        return {
+            "message": "token无效"
+        }
+
+    return {
+        "user_id": user_id
     }
 
 @app.post("/chat")
 def chat(req: ChatRequest):
+
+    user_id = verify_token(
+        req.token
+    )
+
+    if not user_id:
+        return {
+            "message": "token无效"
+        }
+
     try:
 
         parsed_data = extract_travel_info(
@@ -106,27 +140,23 @@ def chat(req: ChatRequest):
         print(profile)
         print(type(profile))
 
-        if current_user_id is None:
-            return {
-                "message": "请先登录"
-            }
-
         if profile:
             save_profile(
-                user_id=current_user_id,
+                user_id=user_id,
                 profile=profile
             )
 
         saved_profile = load_profile(
-            user_id=current_user_id
+            user_id=user_id
         )
 
         city = parsed_data.get("destination")
         days = parsed_data.get("days")
         budget = parsed_data.get("budget")
+
         if city:
             save_history(
-                current_user_id,
+                user_id,
                 city,
                 days,
                 budget
@@ -164,13 +194,15 @@ def chat(req: ChatRequest):
     }
 
 @app.post("/agent")
-def agent(req: ChatRequest):
+def agent(req: AgentRequest):
+    
+    user_id = verify_token(
+        req.token
+    )
 
-    global current_user_id
-
-    if current_user_id is None:
+    if not user_id:
         return {
-            "message":"请先登录"
+            "message":"token无效"
         }
 
     question = req.message
@@ -187,7 +219,7 @@ def agent(req: ChatRequest):
     if tool == "history":
 
         history = get_user_history(
-            current_user_id
+            user_id
         )
 
         answer = summarize_history(
@@ -202,11 +234,11 @@ def agent(req: ChatRequest):
     if tool == "recommend":
 
         profile = load_profile(
-            current_user_id
+            user_id
         )
 
         history = get_user_history(
-            current_user_id
+            user_id
         )
 
         answer = recommend_city(
@@ -222,11 +254,11 @@ def agent(req: ChatRequest):
     if tool == "analysis":
 
         profile = load_profile(
-            current_user_id
+            user_id
         )
 
         history = get_user_history(
-            current_user_id
+            user_id
         )
 
         answer = analyze_user(
@@ -242,7 +274,7 @@ def agent(req: ChatRequest):
     if tool == "profile":
 
         profile = get_user_profile(
-            current_user_id
+            user_id
         )
 
         answer = summarize_profile(
@@ -266,7 +298,7 @@ def agent(req: ChatRequest):
         budget = parsed_data.get("budget")
 
         saved_profile = load_profile(
-            current_user_id
+            user_id
         )
 
         spots = city_spots.get(
@@ -284,7 +316,7 @@ def agent(req: ChatRequest):
         )
 
         save_history(
-            current_user_id,
+            user_id,
             city,
             days,
             budget
@@ -296,19 +328,20 @@ def agent(req: ChatRequest):
         }
     
 
-@app.get("/history")
-def history():
+@app.post("/history")
+def history(req: TokenRequest):
 
-    global current_user_id
+    user_id = verify_token(
+        req.token
+    )
 
-    if current_user_id is None:
-
+    if not user_id:
         return {
-            "message": "请先登录"
+            "message": "token无效"
         }
 
     results = load_history(
-        current_user_id
+        user_id
     )
 
     history_list = []
@@ -325,25 +358,27 @@ def history():
         )
 
     return {
-        "user_id": current_user_id,
+        "user_id": user_id,
         "history": history_list
     }
 
-@app.get("/profile")
-def profile():
+@app.post("/profile")
+def profile(req: TokenRequest):
 
-    global current_user_id
+    user_id = verify_token(
+        req.token
+    )
 
-    if current_user_id is None:
+    if not user_id:
         return {
-            "message": "请先登录"
+            "message": "token无效"
         }
 
     profile_data = load_profile(
-        current_user_id
+        user_id
     )
 
     return {
-        "user_id": current_user_id,
+        "user_id": user_id,
         "profile": profile_data
     }
