@@ -1,12 +1,11 @@
-import requests
 import os
 import json
-
+import httpx
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 
 
-def extract_travel_info(api_key, message):
+async def extract_travel_info(api_key, message):
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -69,11 +68,13 @@ def extract_travel_info(api_key, message):
         "messages": messages
     }
 
-    response = requests.post(
-        DEEPSEEK_API_URL,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
+
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            headers=headers,
+            json=data
+        )
 
     result = response.json()
 
@@ -81,7 +82,7 @@ def extract_travel_info(api_key, message):
 
     return json.loads(ai_reply)
 
-def generate_plan(
+async def generate_plan(
         api_key,
         city,
         days,
@@ -123,11 +124,12 @@ def generate_plan(
         ]
     }
 
-    response = requests.post(
-        DEEPSEEK_API_URL,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            headers=headers,
+            json=data
+        )
 
     result = response.json()
 

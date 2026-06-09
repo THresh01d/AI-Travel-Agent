@@ -23,6 +23,8 @@ from app.services.analysis_service import analyze_user
 from app.services.auth_service import create_token
 from app.services.auth_service import verify_token
 from app.services.dependency import get_current_user
+from app.services.auth_service import hash_password
+from app.services.auth_service import verify_password 
 
 import os
 
@@ -61,7 +63,7 @@ def register(req: RegisterRequest):
 
     create_user(
         req.username,
-        req.password
+        hash_password(req.password)
     )
 
     return {
@@ -80,10 +82,10 @@ def login(req: RegisterRequest):
             "message": "用户不存在"
         }
 
-    if user[2] != req.password:
+    if not verify_password(req.password, user[2]):
         return {
             "message": "密码错误"
-        }
+            }
 
     token = create_token(
         user[0]
@@ -94,24 +96,8 @@ def login(req: RegisterRequest):
         "token": token
     }
 
-@app.post("/me")
-def me(req: TokenRequest):
-
-    user_id = verify_token(
-        req.token
-    )
-
-    if not user_id:
-        return {
-            "message": "token无效"
-        }
-
-    return {
-        "user_id": user_id
-    }
-
 @app.post("/chat")
-def chat(
+async def chat(
     req: ChatRequest,
     user_id: int = Depends(get_current_user)
 ):
@@ -125,7 +111,7 @@ def chat(
     
     try:
 
-        parsed_data = extract_travel_info(
+        parsed_data = await extract_travel_info(
             DEEPSEEK_API_KEY,
             req.message
         )
@@ -177,7 +163,7 @@ def chat(
     }
 
     else:
-        travel_plan = generate_plan(
+        travel_plan = await generate_plan(
         DEEPSEEK_API_KEY,
         city,
         days,
@@ -192,7 +178,7 @@ def chat(
     }
 
 @app.post("/agent")
-def agent(
+async def agent(
     req: ChatRequest,
     user_id: int = Depends(get_current_user)
 ):
@@ -206,7 +192,7 @@ def agent(
 
     question = req.message
 
-    tool_result = choose_tool(
+    tool_result = await choose_tool(
         DEEPSEEK_API_KEY,
         question
     )
@@ -221,7 +207,7 @@ def agent(
             user_id
         )
 
-        answer = summarize_history(
+        answer = await summarize_history(
             DEEPSEEK_API_KEY,
             history
         )
@@ -240,7 +226,7 @@ def agent(
             user_id
         )
 
-        answer = recommend_city(
+        answer = await recommend_city(
             DEEPSEEK_API_KEY,
             profile,
             history
@@ -260,7 +246,7 @@ def agent(
             user_id
         )
 
-        answer = analyze_user(
+        answer = await analyze_user(
             DEEPSEEK_API_KEY,
             profile,
             history
@@ -276,7 +262,7 @@ def agent(
             user_id
         )
 
-        answer = summarize_profile(
+        answer = await summarize_profile(
             DEEPSEEK_API_KEY,
             profile
         )
@@ -287,7 +273,7 @@ def agent(
 
     elif tool == "travel":
 
-        parsed_data = extract_travel_info(
+        parsed_data = await extract_travel_info(
             DEEPSEEK_API_KEY,
             req.message
         )
@@ -305,7 +291,7 @@ def agent(
             ["当地热门景点"]
         )
 
-        travel_plan = generate_plan(
+        travel_plan = await generate_plan(
             DEEPSEEK_API_KEY,
             city,
             days,

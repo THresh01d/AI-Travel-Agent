@@ -73,7 +73,7 @@ def load_profile(user_id):
 
     return profile
 
-def create_user(username, password):
+def create_user(username, password_hash):
 
     conn = get_connection()
 
@@ -87,7 +87,7 @@ def create_user(username, password):
 
     cursor.execute(
         sql,
-        (username, password)
+        (username, password_hash)
     )
 
     conn.commit()

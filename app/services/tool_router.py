@@ -1,8 +1,8 @@
-import requests
 import json
+import httpx
 
 
-def choose_tool(api_key, question):
+async def choose_tool(api_key, question):
 
     url = "https://api.deepseek.com/chat/completions"
 
@@ -91,11 +91,13 @@ def choose_tool(api_key, question):
         "messages": messages
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
+
+        response = await client.post(
+            url,
+            headers=headers,
+            json=data
+        )
 
     result = response.json()
 

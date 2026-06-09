@@ -1,7 +1,6 @@
-import requests
+import httpx
 
-
-def recommend_city(
+async def recommend_city(
     api_key,
     profile,
     history
@@ -44,12 +43,14 @@ def recommend_city(
         ]
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
 
+        response = await client.post(
+            url,
+            headers=headers,
+            json=data
+        )
+        
     result = response.json()
 
     return result["choices"][0]["message"]["content"]

@@ -1,7 +1,7 @@
-import requests
+import httpx
 
 
-def analyze_user(
+async def analyze_user(
     api_key,
     profile,
     history
@@ -44,11 +44,13 @@ def analyze_user(
         ]
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
+
+        response = await client.post(
+            url,
+            headers=headers,
+            json=data
+        )
 
     result = response.json()
 

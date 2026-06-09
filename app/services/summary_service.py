@@ -1,7 +1,6 @@
-import requests
+import httpx
 
-
-def summarize_profile(
+async def summarize_profile(
     api_key,
     profile
 ):
@@ -38,17 +37,19 @@ def summarize_profile(
         ]
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
+
+        response = await client.post(
+            url,
+            headers=headers,
+            json=data
+        )
 
     result = response.json()
 
     return result["choices"][0]["message"]["content"]
 
-def summarize_history(
+async def summarize_history(
     api_key,
     history
 ):
@@ -88,12 +89,14 @@ def summarize_history(
         ]
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data
-    )
+    async with httpx.AsyncClient(timeout=30) as client:
 
+        response = await client.post(
+            url,
+            headers=headers,
+            json=data
+        )
+        
     result = response.json()
 
     return result["choices"][0]["message"]["content"]
