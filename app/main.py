@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -21,6 +22,7 @@ from app.services.recommend_service import recommend_city
 from app.services.analysis_service import analyze_user
 from app.services.auth_service import create_token
 from app.services.auth_service import verify_token
+from app.services.dependency import get_current_user
 
 import os
 
@@ -30,17 +32,12 @@ app = FastAPI()
 
 class ChatRequest(BaseModel):
     message: str
-    token: str
 
 class RegisterRequest(BaseModel):
     username: str
     password: str
 
 class TokenRequest(BaseModel):
-    token: str
-
-class AgentRequest(BaseModel):
-    message: str
     token: str
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
@@ -114,17 +111,18 @@ def me(req: TokenRequest):
     }
 
 @app.post("/chat")
-def chat(req: ChatRequest):
+def chat(
+    req: ChatRequest,
+    user_id: int = Depends(get_current_user)
+):
 
-    user_id = verify_token(
-        req.token
-    )
+    print("chat user_id=", user_id)
 
-    if not user_id:
+    if user_id is None:
         return {
-            "message": "token无效"
+            "message":"token无效"
         }
-
+    
     try:
 
         parsed_data = extract_travel_info(
@@ -194,13 +192,14 @@ def chat(req: ChatRequest):
     }
 
 @app.post("/agent")
-def agent(req: AgentRequest):
-    
-    user_id = verify_token(
-        req.token
-    )
+def agent(
+    req: ChatRequest,
+    user_id: int = Depends(get_current_user)
+):
 
-    if not user_id:
+    print("agent user_id=", user_id)
+
+    if user_id is None:
         return {
             "message":"token无效"
         }
@@ -329,15 +328,15 @@ def agent(req: AgentRequest):
     
 
 @app.post("/history")
-def history(req: TokenRequest):
+def history(
+    user_id: int = Depends(get_current_user)
+):
 
-    user_id = verify_token(
-        req.token
-    )
+    print("history user_id=", user_id)
 
-    if not user_id:
+    if user_id is None:
         return {
-            "message": "token无效"
+            "message":"token无效"
         }
 
     results = load_history(
@@ -363,15 +362,15 @@ def history(req: TokenRequest):
     }
 
 @app.post("/profile")
-def profile(req: TokenRequest):
+def profile(
+    user_id: int = Depends(get_current_user)
+):
 
-    user_id = verify_token(
-        req.token
-    )
+    print("最终user_id=", user_id)
 
-    if not user_id:
+    if user_id is None:
         return {
-            "message": "token无效"
+            "message":"token无效"
         }
 
     profile_data = load_profile(
