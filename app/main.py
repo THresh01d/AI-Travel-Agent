@@ -9,7 +9,8 @@ from app.database import create_user
 from app.database import get_user_by_username
 from app.database import save_history
 from app.database import load_history
-from app.knowledge_base import city_spots
+
+from app.knowledge.vector_store import init_knowledge_base, search_spots
 
 from app.services.ai_service import extract_travel_info
 from app.services.ai_service import generate_plan
@@ -30,7 +31,17 @@ import os
 
 load_dotenv()
 
-app = FastAPI()
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时执行
+    init_knowledge_base()
+    yield
+    # 关闭时执行（你暂时不需要做什么，留空）
+
+app = FastAPI(lifespan=lifespan)
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -94,87 +105,6 @@ def login(req: RegisterRequest):
     return {
         "message": "登录成功",
         "token": token
-    }
-
-@app.post("/chat")
-async def chat(
-    req: ChatRequest,
-    user_id: int = Depends(get_current_user)
-):
-
-    print("chat user_id=", user_id)
-
-    if user_id is None:
-        return {
-            "message":"token无效"
-        }
-    
-    try:
-
-        parsed_data = await extract_travel_info(
-            DEEPSEEK_API_KEY,
-            req.message
-        )
-
-        profile = parsed_data.get(
-            "profile",
-            {}
-        )
-
-        print(profile)
-        print(type(profile))
-
-        if profile:
-            save_profile(
-                user_id=user_id,
-                profile=profile
-            )
-
-        saved_profile = load_profile(
-            user_id=user_id
-        )
-
-        city = parsed_data.get("destination")
-        days = parsed_data.get("days")
-        budget = parsed_data.get("budget")
-
-        if city:
-            save_history(
-                user_id,
-                city,
-                days,
-                budget
-            )
-
-        spots = city_spots.get(
-            city,
-            ["当地热门景点"]
-        )
-
-    except Exception as e:
-        return {
-            "error": str(e)
-        }
-
-    if city is None or days is None:
-        return {
-        "message":"用户偏好已保存",
-        "parsed_data": parsed_data
-    }
-
-    else:
-        travel_plan = await generate_plan(
-        DEEPSEEK_API_KEY,
-        city,
-        days,
-        budget,
-        saved_profile,
-        spots
-    )
-        return {
-        "parsed_data": parsed_data,
-        "saved_profile": saved_profile,
-        "travel_plan": travel_plan
     }
 
 @app.post("/agent")
@@ -257,19 +187,28 @@ async def agent(
         }
 
     if tool == "profile":
-
-        profile = get_user_profile(
-            user_id
+        parsed_data = await extract_travel_info(
+            DEEPSEEK_API_KEY, 
+            question
         )
+        
+        new_profile = parsed_data.get("profile", {})
+        
+        if new_profile:
+            save_profile(
+                user_id=user_id, 
+                profile=new_profile
+            )
+        
+        profile = get_user_profile(user_id)
 
         answer = await summarize_profile(
-            DEEPSEEK_API_KEY,
+            DEEPSEEK_API_KEY, 
             profile
         )
 
-        return {
-            "answer": answer
-        }
+        return {"answer": answer}
+
 
     elif tool == "travel":
 
@@ -278,18 +217,35 @@ async def agent(
             req.message
         )
 
-        city = parsed_data.get("destination")
+        ai_city = parsed_data.get("destination")
         days = parsed_data.get("days")
         budget = parsed_data.get("budget")
+
+        profile = parsed_data.get("profile", {})
+        
+        if profile:
+            save_profile(
+                user_id=user_id, 
+                profile=profile
+            )
 
         saved_profile = load_profile(
             user_id
         )
 
-        spots = city_spots.get(
-            city,
-            ["当地热门景点"]
-        )
+        spots, rag_city = search_spots(req.message, top_k=3)
+
+        city = ai_city or rag_city
+        days = days or 3
+
+        if ai_city and parsed_data.get("days"):
+            save_history(
+                user_id,
+                city,
+                days,
+                budget
+            )
+
 
         travel_plan = await generate_plan(
             DEEPSEEK_API_KEY,
@@ -298,14 +254,7 @@ async def agent(
             budget,
             saved_profile,
             spots
-        )
-
-        save_history(
-            user_id,
-            city,
-            days,
-            budget
-        )
+        )        
 
         return {
             "tool":"travel",
