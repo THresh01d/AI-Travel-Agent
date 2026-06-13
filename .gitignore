@@ -10,6 +10,12 @@ venv/
 # 环境变量
 .env
 
+# 向量数据库
+chroma_data/
+
+# 本地模型
+local_model/
+
 # IDE配置
 .vscode/
 .idea/

@@ -12,7 +12,6 @@ from app.database import load_history
 
 from app.knowledge.vector_store import init_knowledge_base, search_spots
 
-from app.services.ai_service import extract_travel_info
 from app.services.ai_service import generate_plan
 from app.services.agent_service import get_user_profile
 from app.services.agent_service import get_user_history
@@ -122,12 +121,10 @@ async def agent(
 
     question = req.message
 
-    tool_result = await choose_tool(
+    tool, args = await choose_tool(
         DEEPSEEK_API_KEY,
         question
     )
-
-    tool = tool_result["tool"]
 
     print(tool)
 
@@ -187,12 +184,7 @@ async def agent(
         }
 
     if tool == "profile":
-        parsed_data = await extract_travel_info(
-            DEEPSEEK_API_KEY, 
-            question
-        )
-        
-        new_profile = parsed_data.get("profile", {})
+        new_profile = {k: v for k, v in args.items() if v}
         
         if new_profile:
             save_profile(
@@ -201,65 +193,48 @@ async def agent(
             )
         
         profile = get_user_profile(user_id)
-
-        answer = await summarize_profile(
-            DEEPSEEK_API_KEY, 
-            profile
-        )
-
-        return {"answer": answer}
+        answer = await summarize_profile(DEEPSEEK_API_KEY, profile)
+        return {
+            "answer": 
+            answer
+        }
 
 
     elif tool == "travel":
-
-        parsed_data = await extract_travel_info(
-            DEEPSEEK_API_KEY,
-            req.message
-        )
-
-        ai_city = parsed_data.get("destination")
-        days = parsed_data.get("days")
-        budget = parsed_data.get("budget")
-
-        profile = parsed_data.get("profile", {})
+        ai_city = args.get("destination")
+        days = args.get("days")
+        budget = args.get("budget")
         
-        if profile:
+        preference = args.get("preference")
+        if preference:
             save_profile(
                 user_id=user_id, 
-                profile=profile
+                profile={"preference": preference}
             )
-
-        saved_profile = load_profile(
-            user_id
-        )
-
+        
+        saved_profile = load_profile(user_id)
         spots, rag_city = search_spots(req.message, top_k=3)
-
+        
         city = ai_city or rag_city
         days = days or 3
-
-        if ai_city and parsed_data.get("days"):
-            save_history(
-                user_id,
-                city,
-                days,
-                budget
-            )
-
-
+        
+        if ai_city and days:
+            save_history(user_id, city, days, budget)
+        
         travel_plan = await generate_plan(
-            DEEPSEEK_API_KEY,
-            city,
-            days,
-            budget,
-            saved_profile,
+            DEEPSEEK_API_KEY, 
+            city, 
+            days, 
+            budget, 
+            saved_profile, 
             spots
-        )        
+        )
 
         return {
-            "tool":"travel",
-            "travel_plan":travel_plan
+            "tool": "travel", 
+            "travel_plan": travel_plan
         }
+
     
 
 @app.post("/history")

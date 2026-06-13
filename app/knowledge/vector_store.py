@@ -2,13 +2,12 @@ import chromadb
 from chromadb.utils import embedding_functions
 from .spots_data import spots_descriptions
 
-# 初始化 ChromaDB 客户端（数据存在本地 persist 目录）
 client = chromadb.PersistentClient(path="./chroma_data")
 
-# Embedding 函数
-embed_fn = embedding_functions.DefaultEmbeddingFunction()
+embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="./local_model/BAAI/bge-small-zh-v1___5"
+)
 
-# 获取或创建 collection
 collection = client.get_or_create_collection(
     name="travel_spots",
     embedding_function=embed_fn,
