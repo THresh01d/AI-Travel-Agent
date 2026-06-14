@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi import Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import json as json_lib
+import os
+
 
 from app.database import save_profile
 from app.database import load_profile
@@ -12,7 +15,9 @@ from app.database import load_history
 
 from app.knowledge.vector_store import init_knowledge_base, search_spots
 
-from app.services.ai_service import generate_plan
+from app.services.ai_service import generate_plan, generate_plan_stream
+from app.services.recommend_service import recommend_city, recommend_city_stream
+from app.services.analysis_service import analyze_user, analyze_user_stream
 from app.services.agent_service import get_user_profile
 from app.services.agent_service import get_user_history
 from app.services.tool_router import choose_tool
@@ -25,8 +30,10 @@ from app.services.auth_service import verify_token
 from app.services.dependency import get_current_user
 from app.services.auth_service import hash_password
 from app.services.auth_service import verify_password 
+from app.services.weather_service import get_weather
 
-import os
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -40,6 +47,15 @@ async def lifespan(app: FastAPI):
     # 关闭时执行（你暂时不需要做什么，留空）
 
 app = FastAPI(lifespan=lifespan)
+
+# CORS —— 允许前端跨域访问
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class ChatRequest(BaseModel):
@@ -220,14 +236,17 @@ async def agent(
         
         if ai_city and days:
             save_history(user_id, city, days, budget)
-        
+
+        weather = await get_weather(city, days)
+   
         travel_plan = await generate_plan(
             DEEPSEEK_API_KEY, 
             city, 
             days, 
             budget, 
             saved_profile, 
-            spots
+            spots,
+            weather = weather
         )
 
         return {
@@ -235,7 +254,92 @@ async def agent(
             "travel_plan": travel_plan
         }
 
+
+@app.post("/agent/stream")
+async def agent_stream(
+    req: ChatRequest,
+    user_id: int = Depends(get_current_user)
+):
+
+    if user_id is None:
+        return {
+            "message": "token无效"
+        }
+
+    question = req.message
+
+    tool, args = await choose_tool(DEEPSEEK_API_KEY, question)
+
+    if tool == "travel":
+        ai_city = args.get("destination")
+        days = args.get("days")
+        budget = args.get("budget")
+
+        preference = args.get("preference")
+        if preference:
+            save_profile(user_id=user_id, profile={"preference": preference})
+
+        saved_profile = load_profile(user_id)
+        spots, rag_city = search_spots(question, top_k=3)
+
+        city = ai_city or rag_city
+        days = days or 3
+
+        if ai_city and days:
+            save_history(user_id, city, days, budget)
+
+        weather = await get_weather(city, days)
+
+        async def generate():
+            async for token in generate_plan_stream(
+                DEEPSEEK_API_KEY, city, days, budget, saved_profile, spots,
+                weather=weather
+            ):
+                yield f"data: {json_lib.dumps({'content': token})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
     
+    else:
+        if tool == "profile":
+            new_profile = {k: v for k, v in args.items() if v}
+            if new_profile:
+                save_profile(user_id=user_id, profile=new_profile)
+            profile = get_user_profile(user_id)
+            answer = await summarize_profile(DEEPSEEK_API_KEY, profile)
+            return {"answer": answer}
+
+        if tool == "history":
+            history = get_user_history(user_id)
+            answer = await summarize_history(DEEPSEEK_API_KEY, history)
+            return {"answer": answer}
+
+        if tool == "recommend":
+            profile = load_profile(user_id)
+            history = get_user_history(user_id)
+
+            async def gen_recommend():
+                async for token in recommend_city_stream(DEEPSEEK_API_KEY, profile, history):
+                    yield f"data: {json_lib.dumps({'content': token})}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(gen_recommend(), media_type="text/event-stream")
+
+        if tool == "analysis":
+            profile = load_profile(user_id)
+            history = get_user_history(user_id)
+
+            async def gen_analysis():
+                async for token in analyze_user_stream(DEEPSEEK_API_KEY, profile, history):
+                    yield f"data: {json_lib.dumps({'content': token})}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(gen_analysis(), media_type="text/event-stream")
+
+        return {"message": "未知工具"}
+
+
+   
 
 @app.post("/history")
 def history(
@@ -291,3 +395,10 @@ def profile(
         "user_id": user_id,
         "profile": profile_data
     }
+
+
+from fastapi.responses import FileResponse
+
+@app.get("/app")
+def serve_frontend():
+    return FileResponse("static/index.html")

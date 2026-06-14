@@ -15,7 +15,7 @@ TOOLS = [
                     "budget": {"type": "integer", "description": "旅行预算"},
                     "preference": {"type": "string", "description": "用户的旅行偏好"},
                 },
-                "required": []
+                "required": ["destination"]
             }
         }
     },
@@ -73,7 +73,18 @@ async def choose_tool(api_key, question):
     }
 
     messages = [
-        {"role": "system", "content": "你是一个旅行助手。根据用户的话选择合适的工具。"},
+        {
+            "role": "system",
+            "content": """你是一个旅行助手。严格按以下规则选择工具：
+
+1. 用户说了具体城市名（如"成都""上海"）+ 天数 → 选 travel，提取 destination 和 days
+2. 用户请求推荐目的地（"推荐""适合去哪""什么地方好"）→ 选 recommend
+3. 用户表达偏好/习惯（"我喜欢""我习惯""我讨厌"）→ 选 profile
+4. 用户要求分析自己（"分析我的习惯""我的旅行风格"）→ 选 analysis
+5. 用户问去过哪里（"历史""去过哪些"）→ 选 history
+
+关键：只要用户说了具体城市名，就选 travel。不要选 recommend 或其他工具。"""
+        },
         {"role": "user", "content": question}
     ]
 

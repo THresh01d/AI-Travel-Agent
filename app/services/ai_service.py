@@ -88,7 +88,8 @@ async def generate_plan(
         days,
         budget,
         profile,
-        spots
+        spots,
+        weather: str = ""
 ):
 
     headers = {
@@ -107,8 +108,13 @@ async def generate_plan(
     推荐景点：
     {spots}
 
-    请按Day1 Day2格式输出。
+    天气预报：
+    {weather if weather else "暂无天气数据"}
+
+    请根据天气情况合理调整行程（如雨天建议室内景点，晴天建议户外活动）。
+    按Day1 Day2格式输出。
     """
+
 
     data = {
         "model": "deepseek-chat",
@@ -134,3 +140,50 @@ async def generate_plan(
     result = response.json()
 
     return result["choices"][0]["message"]["content"]
+
+async def generate_plan_stream(api_key, city, days, budget, profile, spots, weather=""):
+    """生成攻略——流式版本，逐字返回"""
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    plan_prompt = f"""
+    请根据以下信息生成详细旅游攻略：
+
+    城市：{city}
+    天数：{days}
+    预算：{budget}
+    用户偏好：{profile}
+
+    推荐景点：
+    {spots}
+
+    天气预报：
+    {weather if weather else "暂无天气数据"}
+
+    请根据天气情况合理调整行程。按Day1 Day2格式输出。
+    """
+
+    data = {
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": "你是专业旅游规划师"},
+            {"role": "user", "content": plan_prompt}
+        ],
+        "stream": True   # ← 关键：开启流式
+    }
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        async with client.stream("POST", DEEPSEEK_API_URL, headers=headers, json=data) as response:
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    chunk_str = line[6:]     # 去掉 "data: " 前缀
+                    if chunk_str == "[DONE]":
+                        break
+                    chunk = json.loads(chunk_str)
+                    delta = chunk["choices"][0].get("delta", {})
+                    content = delta.get("content", "")
+                    if content:
+                        yield content       # ← yield，不 return

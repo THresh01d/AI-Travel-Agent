@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voyager · 旅行手札</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════
+   WANDERER'S JOURNAL
+   手绘旅行日志
+   ═══════════════════════ */
+
+:root {
+  --page: #f7f0e0;
+  --page-warm: #efe3cc;
+  --ink: #2c2216;
+  --ink-soft: #554b3a;
+  --ink-fade: #8a8070;
+  --polaroid: #fafaf6;
+  --tape: rgba(235,220,195,0.7);
+  --shadow: rgba(44,34,22,0.08);
+  --shadow-lg: rgba(44,34,22,0.14);
+  --accent: #c76b5a;
+  --accent-soft: #e89282;
+  --leaf: #5b8a7a;
+  --leaf-soft: #7fad9c;
+  --ink-blue: #3d5a6e;
+  --font-hand: 'Caveat', cursive;
+  --font-brush: 'Long Cang', cursive;
+  --font-print: 'ZCOOL XiaoWei', serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+/* ── Paper texture background ── */
+body {
+  background-color: var(--page);
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  color: var(--ink);
+  font-family: var(--font-print);
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Leather binding strip (left edge) ── */
+body::before {
+  content: '';
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: linear-gradient(to right,
+    #3d2b1a 0%, #5c3d2a 40%, #4a2f1d 60%, #3d2b1a 100%
+  );
+  z-index: 10;
+  box-shadow: 2px 0 8px rgba(44,34,22,0.2);
+}
+
+/* ── Page edge shadow ── */
+body::after {
+  content: '';
+  position: fixed;
+  left: 6px; top: 0; bottom: 0;
+  width: 12px;
+  background: linear-gradient(to right, rgba(44,34,22,0.06), transparent);
+  z-index: 9;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════
+   SIDEBAR — 旅行手帐的扉页
+   ════════════════════════════════════ */
+
+.sidebar {
+  width: 290px;
+  background: linear-gradient(180deg, #faf5ea 0%, #f3ead5 100%);
+  border-right: 1px dashed rgba(44,34,22,0.12);
+  padding: 36px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  flex-shrink: 0;
+  z-index: 2;
+  position: relative;
+  font-family: var(--font-print);
+}
+
+/* ── Notebook hole punches ── */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  left: 16px; top: 20px; bottom: 20px;
+  width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  background:
+    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 28px,
+    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 88px,
+    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 148px,
+    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 208px,
+    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 268px;
+  background-size: 16px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Journal title ── */
+.journal-title {
+  font-family: var(--font-brush);
+  font-size: 36px;
+  color: var(--ink);
+  line-height: 1.1;
+  transform: rotate(-1deg);
+  margin-top: 4px;
+}
+.journal-title small {
+  font-family: var(--font-hand);
+  font-size: 18px;
+  color: var(--ink-fade);
+  display: block;
+  font-weight: 400;
+}
+
+/* ── Date stamp ── */
+.date-stamp {
+  font-family: var(--font-hand);
+  font-size: 20px;
+  color: var(--ink-fade);
+  border-bottom: 1px dashed rgba(44,34,22,0.15);
+  padding-bottom: 10px;
+}
+
+/* ── Tabs like notebook dividers ── */
+.journal-tabs {
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+.journal-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 6px 8px;
+  font-family: var(--font-hand);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink-fade);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.25s;
+  background: transparent;
+  border: none;
+  border-radius: 4px 4px 0 0;
+}
+.journal-tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Paper inputs ── */
+.paper-field {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px dotted rgba(44,34,22,0.2);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-print);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.paper-field::placeholder { color: var(--ink-fade); }
+.paper-field:focus { border-bottom-color: var(--accent); border-bottom-style: solid; }
+
+/* ── Stamped button ── */
+.stamp-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-hand);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  cursor: pointer;
+  position: relative;
+  transform: rotate(-0.5deg);
+  transition: all 0.2s;
+}
+.stamp-btn:hover {
+  background: var(--ink);
+  color: var(--page);
+  transform: rotate(0deg);
+}
+.stamp-btn::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--ink);
+  pointer-events: none;
+}
+.stamp-btn:hover::after { border-color: var(--page); }
+
+/* ── Ghost text link ── */
+.ghost-link {
+  font-family: var(--font-hand);
+  font-size: 19px;
+  color: var(--ink-fade);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 0;
+  text-align: left;
+  transition: color 0.2s;
+}
+.ghost-link:hover { color: var(--accent); }
+
+/* ═══════════════════
+   MAIN — 日志正文区
+   ═══════════════════ */
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+  z-index: 1;
+}
+
+/* ── Page header ── */
+.page-header {
+  padding: 28px 32px 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px dashed rgba(44,34,22,0.1);
+}
+
+.page-header h1 {
+  font-family: var(--font-brush);
+  font-size: 32px;
+  color: var(--ink);
+  font-weight: 400;
+  transform: rotate(-1deg);
+}
+
+.page-header .day-counter {
+  font-family: var(--font-hand);
+  font-size: 20px;
+  color: var(--ink-fade);
+}
+
+/* ── Messages area ── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar { width: 5px; }
+.messages::-webkit-scrollbar-thumb { background: rgba(44,34,22,0.12); border-radius: 4px; }
+
+/* ── Empty state — open journal ── */
+.empty-journal {
+  text-align: center;
+  padding: 48px 32px;
+}
+.empty-journal .journal-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  filter: sepia(0.3);
+}
+.empty-journal p {
+  font-family: var(--font-hand);
+  font-size: 24px;
+  color: var(--ink-fade);
+  line-height: 2;
+}
+.empty-journal p b {
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-decoration: underline wavy var(--accent-soft);
+  text-underline-offset: 4px;
+}
+
+/* ═══════════════════
+   POLAROID MESSAGES
+   ═══════════════════ */
+
+.polaroid {
+  max-width: 72%;
+  animation: dropIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes dropIn {
+  from { opacity:0; transform:translateY(-20px) rotate(-3deg) scale(0.95); }
+  to   { opacity:1; transform:translateY(0) rotate(var(--tilt,0deg)) scale(1); }
+}
+
+/* User's polaroids tilt right */
+.polaroid.self {
+  align-self: flex-end;
+  --tilt: 1.2deg;
+}
+
+/* AI's polaroids tilt left */
+.polaroid.other {
+  align-self: flex-start;
+  --tilt: -1deg;
+}
+
+/* ── Tape effect ── */
+.polaroid::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(calc(var(--tilt,0) * -1 + 3deg));
+  width: 48px;
+  height: 18px;
+  background: var(--tape);
+  border-radius: 1px;
+  box-shadow: 0 1px 2px rgba(44,34,22,0.06);
+  z-index: 3;
+}
+
+/* ── Photo body ── */
+.polaroid-body {
+  background: var(--polaroid);
+  padding: 28px 24px 18px;
+  box-shadow:
+    2px 3px 8px var(--shadow),
+    4px 6px 16px var(--shadow-lg);
+  border-radius: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Polaroid bottom margin (the thick white part) */
+.polaroid-body::after {
+  content: '';
+  display: block;
+  height: 22px;
+  margin: 14px -24px -18px;
+  background: var(--polaroid);
+  border-radius: 0 0 1px 1px;
+}
+
+/* ── Photo content ── */
+.polaroid-body .content {
+  font-family: var(--font-print);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* AI messages lean slightly more handwritten */
+.polaroid.other .content {
+  font-family: var(--font-print);
+}
+
+.polaroid-body .content b,
+.polaroid-body .content strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.polaroid-body .content h3 {
+  font-family: var(--font-brush);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--ink-blue);
+  margin-bottom: 6px;
+}
+
+.polaroid-body .content hr {
+  border: none;
+  border-top: 1px dotted rgba(44,34,22,0.12);
+  margin: 10px 0;
+}
+
+/* ── Caption under polaroid ── */
+.polaroid .caption {
+  font-family: var(--font-hand);
+  font-size: 18px;
+  color: var(--ink-fade);
+  text-align: center;
+  margin-top: 8px;
+  transform: rotate(calc(var(--tilt,0) * 0.5));
+}
+
+/* ── Typing cursor ── */
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 16px;
+  background: var(--ink);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: flicker 0.7s ease-in-out infinite;
+}
+@keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── Input area — like writing at bottom of journal page ── */
+.input-area {
+  padding: 18px 32px 28px;
+  border-top: 1px dashed rgba(44,34,22,0.1);
+}
+
+.input-wrap {
+  display: flex;
+  gap: 12px;
+  background: var(--polaroid);
+  border: 2px solid rgba(44,34,22,0.08);
+  border-radius: 3px;
+  padding: 8px 10px 8px 18px;
+  box-shadow: 1px 2px 6px var(--shadow);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.input-wrap:focus-within {
+  border-color: var(--accent-soft);
+  box-shadow: 2px 4px 12px var(--shadow-lg);
+}
+
+.input-wrap textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-family: var(--font-print);
+  font-size: 15px;
+  padding: 8px 0;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  min-height: 22px;
+  max-height: 120px;
+}
+.input-wrap textarea::placeholder {
+  color: var(--ink-fade);
+  font-family: var(--font-hand);
+  font-size: 18px;
+}
+
+/* Send button — fountain pen nib */
+.input-wrap .send-btn {
+  width: 44px; height: 44px;
+  background: var(--ink);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+.input-wrap .send-btn:hover {
+  background: var(--accent);
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(199,107,90,0.25);
+}
+.input-wrap .send-btn svg {
+  width: 18px; height: 18px;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--polaroid);
+  color: var(--ink);
+  padding: 12px 28px;
+  font-family: var(--font-hand);
+  font-size: 20px;
+  border-radius: 2px;
+  box-shadow: 2px 4px 16px var(--shadow-lg);
+  z-index: 100;
+  animation: toastEnter 0.4s ease, toastExit 0.4s ease 2.6s forwards;
+}
+@keyframes toastEnter { from { opacity:0; transform:translateX(-50%) translateY(16px); } }
+@keyframes toastExit  { to   { opacity:0; transform:translateX(-50%) translateY(-10px); } }
+.toast.warn { border-left: 3px solid var(--accent); }
+
+/* ── Responsive sidebar collapse ── */
+@media (max-width: 768px) {
+  .sidebar { width: 220px; padding: 24px 16px; }
+  .journal-title { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR · 旅行手帐扉页 ══════════ -->
+<aside class="sidebar">
+
+  <div class="journal-title">
+    旅行手札
+    <small>wanderer&rsquo;s journal</small>
+  </div>
+
+  <div class="date-stamp" id="today"></div>
+
+  <!-- Logged out -->
+  <div id="sb-out">
+    <div class="journal-tabs" style="margin-bottom:18px">
+      <button class="journal-tab on" id="tab-login" onclick="flip('login')">登录</button>
+      <button class="journal-tab" id="tab-reg" onclick="flip('register')">注册</button>
+    </div>
+
+    <div id="pane-login">
+      <input class="paper-field" id="li-user" placeholder="你的名字">
+      <input class="paper-field" type="password" id="li-pass" placeholder="口令" style="margin-top:12px">
+      <button class="stamp-btn" style="margin-top:16px" onclick="doLogin()">翻开手札</button>
+    </div>
+
+    <div id="pane-reg" style="display:none">
+      <input class="paper-field" id="rg-user" placeholder="起个名字">
+      <input class="paper-field" type="password" id="rg-pass" placeholder="设个口令" style="margin-top:12px">
+      <button class="stamp-btn" style="margin-top:16px" onclick="doRegister()">开启旅程</button>
+    </div>
+  </div>
+
+  <!-- Logged in -->
+  <div id="sb-in" style="display:none">
+    <p style="font-family:var(--font-hand);font-size:22px;color:var(--ink)">
+      旅人 <span id="st-user" style="font-weight:700">—</span>
+    </p>
+    <p style="font-size:14px;color:var(--ink-fade);line-height:1.6">
+      每一页都是新的旅程。<br>翻过的页码不会消失。
+    </p>
+    <button class="ghost-link" onclick="doLogout()">合上手札 →</button>
+  </div>
+
+</aside>
+
+<!-- ══════════ MAIN · 日志正文 ══════════ -->
+<main class="main">
+
+  <div class="page-header">
+    <h1>&#x270E; 今日旅程</h1>
+    <span class="day-counter" id="page-num">第 1 页</span>
+  </div>
+
+  <div class="messages" id="msgs">
+    <div class="empty-journal">
+      <div class="journal-icon">&#x1F4D4;</div>
+      <p>
+        翻开这页手札<br>
+        告诉我你想去哪<br>
+        比如 <b>"成都三日游一千五"</b><br>
+        或者 <b>"推荐一个安静的地方"</b>
+      </p>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="prompt" rows="1" placeholder="在这里写下你的想法…"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+      <button class="send-btn" onclick="send()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fafaf6" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ── Set the date ── */
+const now = new Date();
+document.getElementById('today').textContent =
+  `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+const API = 'http://127.0.0.1:8000';
+let token = null;
+let pageCount = 1;
+
+/* ── Tab switching ── */
+function flip(t) {
+  document.getElementById('pane-login').style.display = t==='login' ? 'block' : 'none';
+  document.getElementById('pane-reg').style.display = t==='register' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('on', t==='login');
+  document.getElementById('tab-reg').classList.toggle('on', t==='register');
+}
+
+/* ── Toast ── */
+function note(msg, warn) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (warn ? ' warn' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+/* ── Auth ── */
+async function doLogin() {
+  const u = document.getElementById('li-user').value.trim();
+  const p = document.getElementById('li-pass').value;
+  if(!u||!p) return note('请写上名字和口令', true);
+  const r = await fetch(`${API}/login`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:u,password:p})
+  });
+  if(r.ok){
+    const d = await r.json();
+    token = d.token;
+    document.getElementById('sb-out').style.display = 'none';
+    document.getElementById('sb-in').style.display = 'block';
+    document.getElementById('st-user').textContent = u;
+    note('手札已翻开');
+  } else { note('名字或口令不对', true); }
+}
+
+async function doRegister() {
+  const u = document.getElementById('rg-user').value.trim();
+  const p = document.getElementById('rg-pass').value;
+  if(!u||!p) return note('写个名字和口令吧', true);
+  const r = await fetch(`${API}/register`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:u,password:p})
+  });
+  if(r.ok){ note('注册好了，切到登录吧'); flip('login'); }
+  else { note('这个名字可能有人用了', true); }
+}
+
+function doLogout() {
+  token = null; pageCount = 1;
+  document.getElementById('page-num').textContent = '第 1 页';
+  document.getElementById('msgs').innerHTML = `
+    <div class="empty-journal">
+      <div class="journal-icon">&#x1F4D4;</div>
+      <p>翻开这页手札<br>告诉我你想去哪</p>
+    </div>`;
+  document.getElementById('sb-out').style.display = 'block';
+  document.getElementById('sb-in').style.display = 'none';
+}
+
+/* ── Escape ── */
+function esc(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Render polaroid message ── */
+function addPolaroid(role, text) {
+  const empty = document.querySelector('.empty-journal');
+  if(empty) empty.remove();
+
+  const isSelf = role === 'user';
+  const el = document.createElement('div');
+  el.className = `polaroid ${isSelf ? 'self' : 'other'}`;
+
+  const caption = isSelf ? '旅人' : '远方来信';
+  const inside = text
+    ? esc(text)
+    : '<span class="cursor"></span>';
+
+  el.innerHTML = `
+    <div class="polaroid-body">
+      <div class="content">${inside}</div>
+    </div>
+    <div class="caption">${caption}</div>`;
+
+  document.getElementById('msgs').appendChild(el);
+  el.scrollIntoView({behavior:'smooth'});
+  return el.querySelector('.content');
+}
+
+/* ── Send message ── */
+async function send() {
+  const input = document.getElementById('prompt');
+  const prompt = input.value.trim();
+  if(!prompt) return;
+  if(!token) return note('先翻开手札吧', true);
+
+  input.value = '';
+
+  // Bump page counter
+  pageCount++;
+  document.getElementById('page-num').textContent = `第 ${pageCount} 页`;
+
+  // Add user polaroid
+  addPolaroid('user', prompt);
+
+  // Add AI polaroid
+  const aiContent = addPolaroid('assistant', '');
+  let full = '';
+
+  try {
+    const resp = await fetch(`${API}/agent/stream`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({message:prompt})
+    });
+
+    const ct = resp.headers.get('content-type')||'';
+
+    if(ct.includes('text/event-stream')) {
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+
+      while(true) {
+        const {done, value} = await reader.read();
+        if(done) break;
+        buf += dec.decode(value, {stream:true});
+        const lines = buf.split('\n');
+        buf = lines.pop()||'';
+
+        for(const line of lines) {
+          if(line.startsWith('data: ') && !line.includes('[DONE]')) {
+            try {
+              const c = JSON.parse(line.slice(6));
+              full += c.content||'';
+              aiContent.innerHTML = esc(full) + '<span class="cursor"></span>';
+              aiContent.parentElement.parentElement.scrollIntoView({behavior:'smooth'});
+            } catch(_){}
+          }
+        }
+      }
+      aiContent.innerHTML = esc(full);
+    } else {
+      const d = await resp.json();
+      full = d.answer||d.message||JSON.stringify(d);
+      aiContent.innerHTML = esc(full);
+    }
+  } catch(e) {
+    aiContent.innerHTML = `<span style="color:var(--accent)">墨水洒了… ${esc(e.message)}</span>`;
+  }
+}
+</script>
+</body>
+</html>
