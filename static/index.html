@@ -727,9 +727,23 @@ async function send() {
           if(line.startsWith('data: ') && !line.includes('[DONE]')) {
             try {
               const c = JSON.parse(line.slice(6));
-              full += c.content||'';
-              aiContent.innerHTML = esc(full) + '<span class="cursor"></span>';
-              aiContent.parentElement.parentElement.scrollIntoView({behavior:'smooth'});
+              if(c.type === 'content') {
+                // 最终文本 — 打字机效果
+                full += c.text||'';
+                aiContent.innerHTML = esc(full) + '<span class="cursor"></span>';
+                aiContent.parentElement.parentElement.scrollIntoView({behavior:'smooth'});
+              } else if(c.type === 'tool_call') {
+                // Agent 在调工具 — 显示状态提示
+                aiContent.innerHTML = esc(full) +
+                  '<span style="color:var(--ink-fade);font-size:0.85rem;">🔍 ' + esc(c.name) + '…</span>' +
+                  '<span class="cursor"></span>';
+              } else if(c.type === 'tool_result') {
+                // 工具执行完 — 短暂提示
+                aiContent.innerHTML = esc(full) +
+                  '<span style="color:var(--leaf);font-size:0.85rem;">✓ ' + esc(c.name) + ' 完成</span>' +
+                  '<span class="cursor"></span>';
+              }
+              // thinking 和 done 事件不在内容区显示
             } catch(_){}
           }
         }

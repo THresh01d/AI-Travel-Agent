@@ -62,8 +62,11 @@ TOOLS = [
 ]
 
 
-async def choose_tool(api_key, question):
-    """用原生 Function Calling 让 AI 选择工具并提取参数，返回 (tool_name, args_dict)"""
+async def choose_tool(api_key, question, history=None):
+    """用原生 Function Calling 让 AI 选择工具并提取参数，返回 (tool_name, args_dict)
+
+    history: 对话历史列表，格式 [{"role": "user", "content": "..."}, ...]
+    """
 
     url = "https://api.deepseek.com/chat/completions"
 
@@ -85,8 +88,13 @@ async def choose_tool(api_key, question):
 
 关键：只要用户说了具体城市名，就选 travel。不要选 recommend 或其他工具。"""
         },
-        {"role": "user", "content": question}
     ]
+
+    # 如果有历史对话，插入到 system prompt 和当前问题之间
+    if history:
+        messages.extend(history)
+
+    messages.append({"role": "user", "content": question})
 
     data = {
         "model": "deepseek-chat",

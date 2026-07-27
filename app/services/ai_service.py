@@ -89,7 +89,8 @@ async def generate_plan(
         budget,
         profile,
         spots,
-        weather: str = ""
+        weather: str = "",
+        user_message: str = ""
 ):
 
     headers = {
@@ -103,7 +104,8 @@ async def generate_plan(
     城市：{city}
     天数：{days}
     预算：{budget}
-    用户偏好：{profile}
+    用户这次的原话：{user_message}
+	    用户历史偏好（仅供参考，这次的要求优先）：{profile}
 
     推荐景点：
     {spots}
@@ -141,7 +143,7 @@ async def generate_plan(
 
     return result["choices"][0]["message"]["content"]
 
-async def generate_plan_stream(api_key, city, days, budget, profile, spots, weather=""):
+async def generate_plan_stream(api_key, city, days, budget, profile, spots, weather="", user_message=""):
     """生成攻略——流式版本，逐字返回"""
 
     headers = {
@@ -155,7 +157,8 @@ async def generate_plan_stream(api_key, city, days, budget, profile, spots, weat
     城市：{city}
     天数：{days}
     预算：{budget}
-    用户偏好：{profile}
+    用户这次的原话：{user_message}
+	    用户历史偏好（仅供参考，这次的要求优先）：{profile}
 
     推荐景点：
     {spots}
