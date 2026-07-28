@@ -1,26 +1,18 @@
 from fastapi import FastAPI
 from fastapi import Depends
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
 import json as json_lib
-import os
 
-
+from app.core.config import settings
+from app.core.middleware import exception_handler_middleware
 from app.database import load_profile, load_history
 from app.database import create_user, get_user_by_username
-
-from app.services.auth_service import create_token
-from app.services.auth_service import verify_token
+from app.services.auth_service import create_token, verify_token, hash_password, verify_password
 from app.services.dependency import get_current_user
-from app.services.auth_service import hash_password
-from app.services.auth_service import verify_password
 from app.services.conversation import add_message, get_history
 from app.core.agent_loop import run_agent_loop
-
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-
-load_dotenv()
 
 from contextlib import asynccontextmanager
 
@@ -52,9 +44,12 @@ class RegisterRequest(BaseModel):
 class TokenRequest(BaseModel):
     token: str
 
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+
+# ---- 注册中间件 ----
+app.middleware("http")(exception_handler_middleware)
 
 
+# ---- 路由 ----
 @app.get("/")
 def home():
     return {"message": "AI Travel Agent Running"}
@@ -111,18 +106,17 @@ async def agent(
     req: ChatRequest,
     user_id: int = Depends(get_current_user)
 ):
-    """Agent 端点（非流式）—— Agent Loop 驱动，Agent 自主决定调用哪些工具"""
+    """Agent 端点—— Agent Loop 驱动，Agent 自主决定调用哪些工具"""
     if user_id is None:
         return {"message": "token无效"}
 
     history = get_history(user_id)
     add_message(user_id, "user", req.message)
 
-    # 收集 Agent Loop 的所有事件，提取最终回答
     final_answer = ""
     stats = {}
     async for event in run_agent_loop(
-        DEEPSEEK_API_KEY, req.message, user_id, history
+        settings.deepseek_api_key, req.message, user_id, history
     ):
         if event["type"] == "content":
             final_answer = event["text"]
@@ -148,7 +142,7 @@ async def agent_stream(
     async def generate():
         full_answer = ""
         async for event in run_agent_loop(
-            DEEPSEEK_API_KEY, req.message, user_id, history
+            settings.deepseek_api_key, req.message, user_id, history
         ):
             # 把每个事件序列化为 SSE 格式
             yield f"data: {json_lib.dumps(event, ensure_ascii=False)}\n\n"
@@ -220,8 +214,6 @@ def profile(
         "profile": profile_data
     }
 
-
-from fastapi.responses import FileResponse
 
 @app.get("/app")
 def serve_frontend():

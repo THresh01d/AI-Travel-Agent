@@ -13,7 +13,7 @@
 
 ### 改进前的状态
 
-`/agent` 端点的架构本质是分类器 + 分发器：
+/agent 端点的架构本质是分类器 + 分发器：
 
 用户输入 → choose_tool() → 选一个工具 → main.py 的 if/elif 执行固定流程 → 返回
 
@@ -270,7 +270,6 @@ data: {"type": "done", "stats": {"iterations": 2, "tool_calls": 5, "total_tokens
 ✓ SSE 结构化事件流（thinking/tool_call/tool_result/content/done）
 ✓ async/await 异步全链路
 ✓ 自定义 HTML 前端（手绘旅行日志风格）
-```
 
 ## 下一步
 

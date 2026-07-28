@@ -20,7 +20,6 @@ MAX_ITERATIONS = 5
 
 
 # ReAct 模式的 System Prompt
-# 这是教 Agent "怎么思考"的核心——不是教它选哪个工具，而是教它解决问题的流程
 SYSTEM_PROMPT = """你是一个智能旅行规划助手。你需要通过多步推理来帮助用户。
 
 ## 工作流程
@@ -93,7 +92,7 @@ async def run_agent_loop(
     }
 
     # ---- 3. ReAct 主循环 ----
-    # 这就是你把"路由器"变成"Agent"的地方：不是选一个工具，而是在循环里反复调用 LLM
+    #不是选一个工具，而是在循环里反复调用 LLM
     for iteration in range(1, MAX_ITERATIONS + 1):
         stats["iterations"] = iteration
 

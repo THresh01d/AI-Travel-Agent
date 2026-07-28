@@ -20,7 +20,7 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 async def _handle_get_weather(api_key: str, args: dict, user_id: int) -> str:
     """查询某个城市未来几天天气"""
     city = args.get("city", "")
-    days = args.get("days", 3)
+    days = args.get("days", 3) 
     if not city:
         return "错误：未提供城市名"
     try:
@@ -31,7 +31,6 @@ async def _handle_get_weather(api_key: str, args: dict, user_id: int) -> str:
 
 
 async def _handle_search_spots(api_key: str, args: dict, user_id: int) -> str:
-    """景点搜索——无 RAG 知识库，告诉 Agent 用自己的训练知识"""
     query = args.get("query", "")
     if not query:
         return "请提供搜索关键词"
