@@ -1,15 +1,20 @@
 import pymysql
+from dbutils.pooled_db import PooledDB
 from app.core.config import settings
+
+pool = PooledDB(
+    creator=pymysql,
+    maxconnections=5,
+    host=settings.mysql_host,
+    user=settings.mysql_user,
+    password=settings.mysql_password,
+    database=settings.mysql_database,
+    charset="utf8mb4",
+)
 
 
 def get_connection():
-    return pymysql.connect(
-        host=settings.mysql_host,
-        user=settings.mysql_user,
-        password=settings.mysql_password,
-        database=settings.mysql_database,
-        charset="utf8mb4"
-    )
+    return pool.connection()
 
 
 def save_profile(user_id, profile):

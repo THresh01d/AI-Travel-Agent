@@ -1,0 +1,43 @@
+# ==========================================
+# AI Travel Agent — Docker Compose 编排
+# ==========================================
+# 启动命令：docker-compose up -d
+# 停止命令：docker-compose down
+#
+# 服务架构：
+#   app   → FastAPI 后端（端口 8000）
+#   mysql → MySQL 8.0 数据库（端口 3306）
+# ==========================================
+
+services:
+  app:
+    build: .
+    container_name: travel-agent-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: travel-agent-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
