@@ -1,763 +1,95 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voyager · 旅行手札</title>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Long+Cang&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<style>
-/* ═══════════════════════
-   WANDERER'S JOURNAL
-   手绘旅行日志
-   ═══════════════════════ */
-
-:root {
-  --page: #f7f0e0;
-  --page-warm: #efe3cc;
-  --ink: #2c2216;
-  --ink-soft: #554b3a;
-  --ink-fade: #8a8070;
-  --polaroid: #fafaf6;
-  --tape: rgba(235,220,195,0.7);
-  --shadow: rgba(44,34,22,0.08);
-  --shadow-lg: rgba(44,34,22,0.14);
-  --accent: #c76b5a;
-  --accent-soft: #e89282;
-  --leaf: #5b8a7a;
-  --leaf-soft: #7fad9c;
-  --ink-blue: #3d5a6e;
-  --font-hand: 'Caveat', cursive;
-  --font-brush: 'Long Cang', cursive;
-  --font-print: 'ZCOOL XiaoWei', serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
-}
-
-* { margin:0; padding:0; box-sizing:border-box; }
-
-/* ── Paper texture background ── */
-body {
-  background-color: var(--page);
-  background-image:
-    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  color: var(--ink);
-  font-family: var(--font-print);
-  height: 100vh;
-  display: flex;
-  overflow: hidden;
-}
-
-/* ── Leather binding strip (left edge) ── */
-body::before {
-  content: '';
-  position: fixed;
-  left: 0; top: 0; bottom: 0;
-  width: 6px;
-  background: linear-gradient(to right,
-    #3d2b1a 0%, #5c3d2a 40%, #4a2f1d 60%, #3d2b1a 100%
-  );
-  z-index: 10;
-  box-shadow: 2px 0 8px rgba(44,34,22,0.2);
-}
-
-/* ── Page edge shadow ── */
-body::after {
-  content: '';
-  position: fixed;
-  left: 6px; top: 0; bottom: 0;
-  width: 12px;
-  background: linear-gradient(to right, rgba(44,34,22,0.06), transparent);
-  z-index: 9;
-  pointer-events: none;
-}
-
-/* ════════════════════════════════════
-   SIDEBAR — 旅行手帐的扉页
-   ════════════════════════════════════ */
-
-.sidebar {
-  width: 290px;
-  background: linear-gradient(180deg, #faf5ea 0%, #f3ead5 100%);
-  border-right: 1px dashed rgba(44,34,22,0.12);
-  padding: 36px 24px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  flex-shrink: 0;
-  z-index: 2;
-  position: relative;
-  font-family: var(--font-print);
-}
-
-/* ── Notebook hole punches ── */
-.sidebar::before {
-  content: '';
-  position: absolute;
-  left: 16px; top: 20px; bottom: 20px;
-  width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-  background:
-    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 28px,
-    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 88px,
-    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 148px,
-    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 208px,
-    radial-gradient(circle 4px, var(--page) 40%, transparent 42%) 0 268px;
-  background-size: 16px;
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* ── Journal title ── */
-.journal-title {
-  font-family: var(--font-brush);
-  font-size: 36px;
-  color: var(--ink);
-  line-height: 1.1;
-  transform: rotate(-1deg);
-  margin-top: 4px;
-}
-.journal-title small {
-  font-family: var(--font-hand);
-  font-size: 18px;
-  color: var(--ink-fade);
-  display: block;
-  font-weight: 400;
-}
-
-/* ── Date stamp ── */
-.date-stamp {
-  font-family: var(--font-hand);
-  font-size: 20px;
-  color: var(--ink-fade);
-  border-bottom: 1px dashed rgba(44,34,22,0.15);
-  padding-bottom: 10px;
-}
-
-/* ── Tabs like notebook dividers ── */
-.journal-tabs {
-  display: flex;
-  gap: 0;
-  position: relative;
-}
-.journal-tab {
-  flex: 1;
-  text-align: center;
-  padding: 10px 6px 8px;
-  font-family: var(--font-hand);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ink-fade);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.25s;
-  background: transparent;
-  border: none;
-  border-radius: 4px 4px 0 0;
-}
-.journal-tab.on {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
-}
-
-/* ── Paper inputs ── */
-.paper-field {
-  width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-bottom: 1px dotted rgba(44,34,22,0.2);
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-print);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.3s;
-}
-.paper-field::placeholder { color: var(--ink-fade); }
-.paper-field:focus { border-bottom-color: var(--accent); border-bottom-style: solid; }
-
-/* ── Stamped button ── */
-.stamp-btn {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid var(--ink);
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-hand);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  cursor: pointer;
-  position: relative;
-  transform: rotate(-0.5deg);
-  transition: all 0.2s;
-}
-.stamp-btn:hover {
-  background: var(--ink);
-  color: var(--page);
-  transform: rotate(0deg);
-}
-.stamp-btn::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border: 1px solid var(--ink);
-  pointer-events: none;
-}
-.stamp-btn:hover::after { border-color: var(--page); }
-
-/* ── Ghost text link ── */
-.ghost-link {
-  font-family: var(--font-hand);
-  font-size: 19px;
-  color: var(--ink-fade);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px 0;
-  text-align: left;
-  transition: color 0.2s;
-}
-.ghost-link:hover { color: var(--accent); }
-
-/* ═══════════════════
-   MAIN — 日志正文区
-   ═══════════════════ */
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  max-width: 780px;
-  margin: 0 auto;
-  width: 100%;
-  z-index: 1;
-}
-
-/* ── Page header ── */
-.page-header {
-  padding: 28px 32px 16px;
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  border-bottom: 1px dashed rgba(44,34,22,0.1);
-}
-
-.page-header h1 {
-  font-family: var(--font-brush);
-  font-size: 32px;
-  color: var(--ink);
-  font-weight: 400;
-  transform: rotate(-1deg);
-}
-
-.page-header .day-counter {
-  font-family: var(--font-hand);
-  font-size: 20px;
-  color: var(--ink-fade);
-}
-
-/* ── Messages area ── */
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  scroll-behavior: smooth;
-}
-
-.messages::-webkit-scrollbar { width: 5px; }
-.messages::-webkit-scrollbar-thumb { background: rgba(44,34,22,0.12); border-radius: 4px; }
-
-/* ── Empty state — open journal ── */
-.empty-journal {
-  text-align: center;
-  padding: 48px 32px;
-}
-.empty-journal .journal-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  filter: sepia(0.3);
-}
-.empty-journal p {
-  font-family: var(--font-hand);
-  font-size: 24px;
-  color: var(--ink-fade);
-  line-height: 2;
-}
-.empty-journal p b {
-  font-weight: 700;
-  color: var(--ink-soft);
-  text-decoration: underline wavy var(--accent-soft);
-  text-underline-offset: 4px;
-}
-
-/* ═══════════════════
-   POLAROID MESSAGES
-   ═══════════════════ */
-
-.polaroid {
-  max-width: 72%;
-  animation: dropIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-}
-
-@keyframes dropIn {
-  from { opacity:0; transform:translateY(-20px) rotate(-3deg) scale(0.95); }
-  to   { opacity:1; transform:translateY(0) rotate(var(--tilt,0deg)) scale(1); }
-}
-
-/* User's polaroids tilt right */
-.polaroid.self {
-  align-self: flex-end;
-  --tilt: 1.2deg;
-}
-
-/* AI's polaroids tilt left */
-.polaroid.other {
-  align-self: flex-start;
-  --tilt: -1deg;
-}
-
-/* ── Tape effect ── */
-.polaroid::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%) rotate(calc(var(--tilt,0) * -1 + 3deg));
-  width: 48px;
-  height: 18px;
-  background: var(--tape);
-  border-radius: 1px;
-  box-shadow: 0 1px 2px rgba(44,34,22,0.06);
-  z-index: 3;
-}
-
-/* ── Photo body ── */
-.polaroid-body {
-  background: var(--polaroid);
-  padding: 28px 24px 18px;
-  box-shadow:
-    2px 3px 8px var(--shadow),
-    4px 6px 16px var(--shadow-lg);
-  border-radius: 2px;
-  position: relative;
-  z-index: 1;
-}
-
-/* Polaroid bottom margin (the thick white part) */
-.polaroid-body::after {
-  content: '';
-  display: block;
-  height: 22px;
-  margin: 14px -24px -18px;
-  background: var(--polaroid);
-  border-radius: 0 0 1px 1px;
-}
-
-/* ── Photo content ── */
-.polaroid-body .content {
-  font-family: var(--font-print);
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--ink-soft);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* AI messages lean slightly more handwritten */
-.polaroid.other .content {
-  font-family: var(--font-print);
-}
-
-.polaroid-body .content b,
-.polaroid-body .content strong {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.polaroid-body .content h3 {
-  font-family: var(--font-brush);
-  font-size: 24px;
-  font-weight: 400;
-  color: var(--ink-blue);
-  margin-bottom: 6px;
-}
-
-.polaroid-body .content hr {
-  border: none;
-  border-top: 1px dotted rgba(44,34,22,0.12);
-  margin: 10px 0;
-}
-
-/* ── Caption under polaroid ── */
-.polaroid .caption {
-  font-family: var(--font-hand);
-  font-size: 18px;
-  color: var(--ink-fade);
-  text-align: center;
-  margin-top: 8px;
-  transform: rotate(calc(var(--tilt,0) * 0.5));
-}
-
-/* ── Typing cursor ── */
-.cursor {
-  display: inline-block;
-  width: 2px;
-  height: 16px;
-  background: var(--ink);
-  margin-left: 1px;
-  vertical-align: text-bottom;
-  animation: flicker 0.7s ease-in-out infinite;
-}
-@keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-/* ── Input area — like writing at bottom of journal page ── */
-.input-area {
-  padding: 18px 32px 28px;
-  border-top: 1px dashed rgba(44,34,22,0.1);
-}
-
-.input-wrap {
-  display: flex;
-  gap: 12px;
-  background: var(--polaroid);
-  border: 2px solid rgba(44,34,22,0.08);
-  border-radius: 3px;
-  padding: 8px 10px 8px 18px;
-  box-shadow: 1px 2px 6px var(--shadow);
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-.input-wrap:focus-within {
-  border-color: var(--accent-soft);
-  box-shadow: 2px 4px 12px var(--shadow-lg);
-}
-
-.input-wrap textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--ink);
-  font-family: var(--font-print);
-  font-size: 15px;
-  padding: 8px 0;
-  resize: none;
-  outline: none;
-  line-height: 1.5;
-  min-height: 22px;
-  max-height: 120px;
-}
-.input-wrap textarea::placeholder {
-  color: var(--ink-fade);
-  font-family: var(--font-hand);
-  font-size: 18px;
-}
-
-/* Send button — fountain pen nib */
-.input-wrap .send-btn {
-  width: 44px; height: 44px;
-  background: var(--ink);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.25s;
-}
-.input-wrap .send-btn:hover {
-  background: var(--accent);
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(199,107,90,0.25);
-}
-.input-wrap .send-btn svg {
-  width: 18px; height: 18px;
-}
-
-/* ── Toast ── */
-.toast {
-  position: fixed;
-  bottom: 36px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--polaroid);
-  color: var(--ink);
-  padding: 12px 28px;
-  font-family: var(--font-hand);
-  font-size: 20px;
-  border-radius: 2px;
-  box-shadow: 2px 4px 16px var(--shadow-lg);
-  z-index: 100;
-  animation: toastEnter 0.4s ease, toastExit 0.4s ease 2.6s forwards;
-}
-@keyframes toastEnter { from { opacity:0; transform:translateX(-50%) translateY(16px); } }
-@keyframes toastExit  { to   { opacity:0; transform:translateX(-50%) translateY(-10px); } }
-.toast.warn { border-left: 3px solid var(--accent); }
-
-/* ── Responsive sidebar collapse ── */
-@media (max-width: 768px) {
-  .sidebar { width: 220px; padding: 24px 16px; }
-  .journal-title { font-size: 28px; }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a1020" />
+  <title>TRAVERSO · AI 旅行策划</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+    :root { --ink:#eaf0ff; --muted:#8e9ab6; --line:rgba(190,207,247,.13); --panel:rgba(15,24,47,.66); --panel-solid:#111b35; --cyan:#7ce8f4; --violet:#9d8cff; --lime:#c7fa76; --danger:#ff8d9d; --r:22px; }
+    * { box-sizing:border-box; } html,body { min-height:100%; margin:0; }
+    body { color:var(--ink); background:#080e1d; font-family:Manrope,'Noto Sans SC',sans-serif; overflow-x:hidden; }
+    body::before,body::after { content:""; position:fixed; border-radius:50%; filter:blur(1px); pointer-events:none; z-index:-1; }
+    body::before { width:720px;height:720px;left:-260px;top:-260px;background:radial-gradient(circle,rgba(93,82,219,.27),transparent 67%); }
+    body::after { width:660px;height:660px;right:-210px;bottom:-240px;background:radial-gradient(circle,rgba(28,167,187,.18),transparent 67%); }
+    button,input,textarea { font:inherit; } button { color:inherit; }
+    .shell { min-height:100vh; display:grid; grid-template-columns:270px minmax(0,1fr); }
+    .sidebar { padding:28px 18px 20px; border-right:1px solid var(--line); background:rgba(7,13,29,.66); display:flex; flex-direction:column; min-height:100vh; }
+    .brand { display:flex; align-items:center; gap:11px; padding:0 8px 31px; }
+    .brand-orb { width:37px;height:37px;border-radius:13px; display:grid;place-items:center; color:#07111e; font-weight:800; font-size:18px; background:conic-gradient(from 220deg,var(--cyan),var(--violet),var(--lime),var(--cyan)); box-shadow:0 0 30px rgba(124,232,244,.24); }
+    .brand-name { font-size:15px;font-weight:800;letter-spacing:.12em; } .brand-sub { font:10px 'DM Mono',monospace;color:var(--muted);letter-spacing:.12em;margin-top:3px; }
+    .new-trip { background:linear-gradient(105deg,#a594ff,#68dae9); color:#07101e; border:0;border-radius:14px;padding:13px 15px;text-align:left;font-weight:800;cursor:pointer; box-shadow:0 10px 30px rgba(116,127,255,.22); transition:.2s; }
+    .new-trip:hover { transform:translateY(-2px);filter:brightness(1.08); } .new-trip span { opacity:.6;margin-right:8px; }
+    .nav-label { margin:29px 10px 10px; font:10px 'DM Mono',monospace;letter-spacing:.16em;color:#65708b; }
+    .nav-item { width:100%;border:0;border-radius:12px;padding:11px 10px;background:transparent;color:var(--muted);display:flex;gap:11px;align-items:center;text-align:left;cursor:pointer;font-size:13px;transition:.18s; }
+    .nav-item:hover,.nav-item.active { background:rgba(146,157,255,.11);color:var(--ink); } .nav-item i { font-style:normal;width:18px;text-align:center; }
+    .side-bottom { margin-top:auto; }
+    .profile { padding:13px 9px; border-top:1px solid var(--line); display:flex;align-items:center;gap:10px; }
+    .avatar { width:31px;height:31px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#6de2ef,#9581ff);color:#06101d;font-weight:800;font-size:13px; }
+    .profile-name { font-size:12px;font-weight:700; }.profile-state {font-size:10px;color:var(--muted);margin-top:2px;}.profile-state::before {content:'•';color:var(--lime);margin-right:4px;}
+    .logout { margin-left:auto;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;padding:6px; }
+    .main { min-width:0;display:flex;flex-direction:column;min-height:100vh; }
+    .topbar { height:78px;display:flex;align-items:center;gap:16px;padding:0 42px;border-bottom:1px solid var(--line); }
+    .crumb { font-size:13px;font-weight:700; }.crumb span { color:#66718b;font-weight:500;margin:0 9px; }.model { margin-left:auto;display:flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace;color:var(--muted); }.model b{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px var(--lime);}
+    .top-login { border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer; }
+    .workspace { flex:1;min-height:0;display:flex;flex-direction:column; }
+    .welcome { max-width:1130px;width:100%;margin:auto;padding:58px 42px 42px; }
+    .eyebrow { color:var(--cyan);font:11px 'DM Mono',monospace;letter-spacing:.15em; }.welcome h1 { max-width:720px;font-size:clamp(38px,5vw,68px);letter-spacing:-.065em;line-height:1.06;margin:19px 0 17px; }.glow { background:linear-gradient(100deg,#b9aaff,#72e4f2 52%,#d7ff9a);-webkit-background-clip:text;background-clip:text;color:transparent; }.intro { max-width:520px;line-height:1.85;font-size:15px;color:var(--muted); }
+    .search-card { max-width:900px;margin-top:43px;padding:9px;border:1px solid rgba(168,184,255,.24);border-radius:20px;background:linear-gradient(130deg,rgba(29,42,79,.83),rgba(12,21,41,.83));box-shadow:0 25px 70px rgba(0,0,0,.25);display:flex;align-items:center;gap:7px; }
+    .search-icon { padding-left:15px;color:var(--cyan);font-size:19px; }.search-card textarea { min-height:49px;max-height:120px;resize:none;flex:1;padding:14px 8px;border:0;outline:0;background:transparent;color:var(--ink);font-size:14px;line-height:1.5; }.search-card textarea::placeholder {color:#7e8aa5;}.send { border:0;min-width:49px;height:49px;border-radius:14px;background:var(--lime);color:#0b1422;font-weight:900;font-size:19px;cursor:pointer;transition:.2s; }.send:hover{transform:scale(1.04)}.send:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .hint {margin:11px 12px 0;color:#6f7b94;font-size:11px;}.hint kbd{border:1px solid var(--line);padding:1px 4px;border-radius:4px;font:10px 'DM Mono';}
+    .section-title {display:flex;justify-content:space-between;align-items:center;margin-top:53px;margin-bottom:17px;font-size:13px;font-weight:700;}.section-title small{font:10px 'DM Mono';color:var(--muted);letter-spacing:.08em;}
+    .inspirations {display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}.idea {min-height:159px;padding:19px;border:1px solid var(--line);border-radius:18px;background:var(--panel);text-align:left;color:var(--ink);cursor:pointer;position:relative;overflow:hidden;transition:.25s;}.idea:hover{border-color:rgba(140,224,246,.55);transform:translateY(-4px);background:rgba(24,37,71,.8);}.idea::after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;right:-35px;bottom:-42px;background:var(--idea);filter:blur(20px);opacity:.38}.idea-icon{font-size:23px}.idea h3{margin:25px 0 7px;font-size:15px}.idea p{margin:0;color:var(--muted);font-size:12px;line-height:1.6;}
+    .chat { display:none;flex:1;min-height:0;flex-direction:column; }.chat-header {padding:22px 42px 17px;display:flex;align-items:center;border-bottom:1px solid var(--line);}.chat-title{font-size:15px;font-weight:800;}.chat-meta{margin-top:4px;font:10px 'DM Mono';letter-spacing:.07em;color:var(--muted);}.metrics{margin-left:auto;display:flex;gap:21px}.metric{text-align:right}.metric b{display:block;font:14px 'DM Mono';color:var(--cyan)}.metric span{font-size:10px;color:var(--muted)}
+    .messages { flex:1;overflow:auto;padding:33px 42px; }.conversation {max-width:800px;margin:0 auto;}.message{display:flex;gap:13px;margin-bottom:25px;animation:appear .3s ease}.message.user{justify-content:flex-end}.message .face{flex:0 0 30px;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:800;background:linear-gradient(135deg,#7ce8f4,#9581ff);color:#06101d}.message.assistant .face{background:#1c2a4b;color:var(--cyan);border:1px solid var(--line)}.bubble{max-width:min(680px,82%);padding:15px 18px;border-radius:5px 17px 17px 17px;background:rgba(21,32,63,.8);border:1px solid var(--line);font-size:14px;line-height:1.8}.user .bubble{border-radius:17px 5px 17px 17px;background:linear-gradient(135deg,rgba(119,102,236,.36),rgba(31,142,177,.3));}.answer p:first-child{margin-top:0}.answer p:last-child{margin-bottom:0}.answer h1,.answer h2,.answer h3{font-size:16px;margin:15px 0 7px}.answer ul,.answer ol{padding-left:20px}.answer table{width:100%;border-collapse:collapse;font-size:12px}.answer td,.answer th{padding:6px;border:1px solid var(--line);text-align:left}.answer code{background:#0a1228;color:var(--cyan);padding:2px 5px;border-radius:4px}.tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}.tool{font:10px 'DM Mono';padding:5px 8px;border-radius:6px;background:rgba(112,220,239,.08);color:#91e9f2;border:1px solid rgba(124,232,244,.13)}.tool.running::after{content:' ·';animation:pulse 1s infinite}.cursor{display:inline-block;width:2px;height:1em;background:var(--cyan);vertical-align:-2px;animation:pulse .8s infinite}
+    .chat-composer{padding:17px 42px 27px;border-top:1px solid var(--line);background:rgba(8,14,29,.65);}.chat-composer .search-card{max-width:800px;margin:0 auto}.status{max-width:800px;margin:8px auto 0;color:#72809b;font-size:10px;font-family:'DM Mono';}.status b{color:var(--lime)}
+    .auth-modal { position:fixed;z-index:20;inset:0;background:rgba(4,8,18,.64);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px; }.auth-modal.open{display:flex}.auth-card{width:min(410px,100%);border:1px solid rgba(164,184,255,.23);border-radius:24px;padding:30px;background:#101a33;box-shadow:0 35px 100px rgba(0,0,0,.5)}.auth-card h2{margin:15px 0 7px;font-size:26px;letter-spacing:-.05em}.auth-card p{margin:0 0 22px;color:var(--muted);font-size:13px}.tabs{display:flex;background:#0a1329;border-radius:10px;padding:3px;margin-bottom:16px}.tab{flex:1;border:0;background:transparent;color:var(--muted);padding:8px;border-radius:7px;cursor:pointer;font-size:12px}.tab.on{background:#25345a;color:white}.field{width:100%;border:1px solid var(--line);outline:none;border-radius:11px;background:#0b142a;color:var(--ink);padding:12px;margin:5px 0;font-size:13px}.field:focus{border-color:var(--cyan)}.auth-action{width:100%;border:0;border-radius:11px;padding:12px;margin-top:9px;background:var(--lime);color:#08111e;font-weight:800;cursor:pointer}.close{float:right;border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer}.toast{position:fixed;z-index:30;left:50%;bottom:28px;transform:translate(-50%,30px);opacity:0;background:#eaf0ff;color:#08111e;border-radius:10px;padding:10px 16px;font-size:12px;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @keyframes appear {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.25}}
+    @media(max-width:760px){.shell{display:block}.sidebar{display:none}.topbar{height:64px;padding:0 20px}.model{display:none}.welcome{padding:50px 20px 30px}.welcome h1{font-size:43px}.inspirations{grid-template-columns:1fr}.search-card{margin-top:32px}.chat-header,.messages,.chat-composer{padding-left:20px;padding-right:20px}.metrics{gap:12px}.metric:nth-child(2){display:none}.bubble{max-width:calc(100% - 42px)}}
+  </style>
 </head>
 <body>
-
-<!-- ══════════ SIDEBAR · 旅行手帐扉页 ══════════ -->
-<aside class="sidebar">
-
-  <div class="journal-title">
-    旅行手札
-    <small>wanderer&rsquo;s journal</small>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-orb">T</div><div><div class="brand-name">TRAVERSO</div><div class="brand-sub">PERSONAL TRAVEL OS</div></div></div>
+      <button class="new-trip" onclick="newTrip()"><span>＋</span>开启新的旅程</button>
+      <div class="nav-label">WORKSPACE</div>
+      <button class="nav-item active"><i>◈</i>旅行策划</button><button class="nav-item" onclick="toast('行程库即将上线')"><i>◫</i>我的行程</button><button class="nav-item" onclick="toast('偏好会在对话中持续学习')"><i>◌</i>旅行偏好</button>
+      <div class="side-bottom"><div class="profile"><div class="avatar" id="avatar">G</div><div><div class="profile-name" id="profileName">访客模式</div><div class="profile-state" id="profileState">准备探索</div></div><button class="logout" id="logoutBtn" onclick="logout()" title="退出登录" style="display:none">↪</button></div></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="crumb">旅行工作台 <span>/</span> <b id="viewName">新的灵感</b></div><div class="model"><b></b> AGENT ONLINE · DEEPSEEK</div><button class="top-login" id="loginTop" onclick="openAuth()">登录 / 注册</button></header>
+      <section class="workspace">
+        <div class="welcome" id="welcome">
+          <div class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</div><h1>让每一次出发，<br><span class="glow">都恰好是你想要的。</span></h1><p class="intro">告诉 TRAVERSO 你的目的地、时间和心情。它会整合天气、景点与个人偏好，生成一份真正属于你的旅程。</p>
+          <div class="search-card"><div class="search-icon">⌕</div><textarea id="landingPrompt" rows="1" placeholder="例如：国庆带父母去云南，6 天，轻松一点"></textarea><button class="send" id="landingSend" onclick="submitLanding()">↑</button></div><div class="hint">按 <kbd>Enter</kbd> 开始规划，<kbd>Shift + Enter</kbd> 换行</div>
+          <div class="section-title"><span>从一个灵感开始</span><small>CURATED FOR YOU</small></div>
+          <div class="inspirations"><button class="idea" style="--idea:#705eff" onclick="quickSend('帮我规划一个成都三日美食之旅，预算 2500 元')"><div class="idea-icon">◒</div><h3>城市的烟火气</h3><p>成都 3 日 · 美食与慢生活</p></button><button class="idea" style="--idea:#38d6de" onclick="quickSend('我想去看海，预算 3000 元，玩 3 天，帮我推荐目的地和行程')"><div class="idea-icon">⌇</div><h3>奔向海岸线</h3><p>3 天 · 看海、日落与放空</p></button><button class="idea" style="--idea:#b5ee6d" onclick="quickSend('分析一下我的旅行偏好，并推荐一个适合周末出游的目的地')"><div class="idea-icon">✦</div><h3>读懂你的旅行</h3><p>从偏好出发，发现下一站</p></button></div>
+        </div>
+        <div class="chat" id="chat"><div class="chat-header"><div><div class="chat-title">TRAVERSO 正在为你策划</div><div class="chat-meta" id="chatSub">NEW TRIP · READY</div></div><div class="metrics"><div class="metric"><b id="turnCount">00</b><span>轮对话</span></div><div class="metric"><b id="toolCount">00</b><span>工具调用</span></div><div class="metric"><b id="timeCount">—</b><span>本次耗时</span></div></div></div><div class="messages" id="messages"><div class="conversation" id="conversation"></div></div><div class="chat-composer"><div class="search-card"><div class="search-icon">⌕</div><textarea id="chatPrompt" rows="1" placeholder="继续补充你的想法…"></textarea><button class="send" id="chatSend" onclick="send()">↑</button></div><div class="status"><b>●</b> TRAVERSO READY · 基于实时工具与偏好生成建议</div></div></div>
+      </section>
+    </main>
   </div>
-
-  <div class="date-stamp" id="today"></div>
-
-  <!-- Logged out -->
-  <div id="sb-out">
-    <div class="journal-tabs" style="margin-bottom:18px">
-      <button class="journal-tab on" id="tab-login" onclick="flip('login')">登录</button>
-      <button class="journal-tab" id="tab-reg" onclick="flip('register')">注册</button>
-    </div>
-
-    <div id="pane-login">
-      <input class="paper-field" id="li-user" placeholder="你的名字">
-      <input class="paper-field" type="password" id="li-pass" placeholder="口令" style="margin-top:12px">
-      <button class="stamp-btn" style="margin-top:16px" onclick="doLogin()">翻开手札</button>
-    </div>
-
-    <div id="pane-reg" style="display:none">
-      <input class="paper-field" id="rg-user" placeholder="起个名字">
-      <input class="paper-field" type="password" id="rg-pass" placeholder="设个口令" style="margin-top:12px">
-      <button class="stamp-btn" style="margin-top:16px" onclick="doRegister()">开启旅程</button>
-    </div>
-  </div>
-
-  <!-- Logged in -->
-  <div id="sb-in" style="display:none">
-    <p style="font-family:var(--font-hand);font-size:22px;color:var(--ink)">
-      旅人 <span id="st-user" style="font-weight:700">—</span>
-    </p>
-    <p style="font-size:14px;color:var(--ink-fade);line-height:1.6">
-      每一页都是新的旅程。<br>翻过的页码不会消失。
-    </p>
-    <button class="ghost-link" onclick="doLogout()">合上手札 →</button>
-  </div>
-
-</aside>
-
-<!-- ══════════ MAIN · 日志正文 ══════════ -->
-<main class="main">
-
-  <div class="page-header">
-    <h1>&#x270E; 今日旅程</h1>
-    <span class="day-counter" id="page-num">第 1 页</span>
-  </div>
-
-  <div class="messages" id="msgs">
-    <div class="empty-journal">
-      <div class="journal-icon">&#x1F4D4;</div>
-      <p>
-        翻开这页手札<br>
-        告诉我你想去哪<br>
-        比如 <b>"成都三日游一千五"</b><br>
-        或者 <b>"推荐一个安静的地方"</b>
-      </p>
-    </div>
-  </div>
-
-  <div class="input-area">
-    <div class="input-wrap">
-      <textarea id="prompt" rows="1" placeholder="在这里写下你的想法…"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
-      <button class="send-btn" onclick="send()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fafaf6" stroke-width="2.5">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-
-</main>
-
-<script>
-/* ── Set the date ── */
-const now = new Date();
-document.getElementById('today').textContent =
-  `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-
-const API = 'http://127.0.0.1:8000';
-let token = null;
-let pageCount = 1;
-
-/* ── Tab switching ── */
-function flip(t) {
-  document.getElementById('pane-login').style.display = t==='login' ? 'block' : 'none';
-  document.getElementById('pane-reg').style.display = t==='register' ? 'block' : 'none';
-  document.getElementById('tab-login').classList.toggle('on', t==='login');
-  document.getElementById('tab-reg').classList.toggle('on', t==='register');
-}
-
-/* ── Toast ── */
-function note(msg, warn) {
-  const el = document.createElement('div');
-  el.className = 'toast' + (warn ? ' warn' : '');
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
-}
-
-/* ── Auth ── */
-async function doLogin() {
-  const u = document.getElementById('li-user').value.trim();
-  const p = document.getElementById('li-pass').value;
-  if(!u||!p) return note('请写上名字和口令', true);
-  const r = await fetch(`${API}/login`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:u,password:p})
-  });
-  if(r.ok){
-    const d = await r.json();
-    token = d.token;
-    document.getElementById('sb-out').style.display = 'none';
-    document.getElementById('sb-in').style.display = 'block';
-    document.getElementById('st-user').textContent = u;
-    note('手札已翻开');
-  } else { note('名字或口令不对', true); }
-}
-
-async function doRegister() {
-  const u = document.getElementById('rg-user').value.trim();
-  const p = document.getElementById('rg-pass').value;
-  if(!u||!p) return note('写个名字和口令吧', true);
-  const r = await fetch(`${API}/register`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:u,password:p})
-  });
-  if(r.ok){ note('注册好了，切到登录吧'); flip('login'); }
-  else { note('这个名字可能有人用了', true); }
-}
-
-function doLogout() {
-  token = null; pageCount = 1;
-  document.getElementById('page-num').textContent = '第 1 页';
-  document.getElementById('msgs').innerHTML = `
-    <div class="empty-journal">
-      <div class="journal-icon">&#x1F4D4;</div>
-      <p>翻开这页手札<br>告诉我你想去哪</p>
-    </div>`;
-  document.getElementById('sb-out').style.display = 'block';
-  document.getElementById('sb-in').style.display = 'none';
-}
-
-/* ── Escape ── */
-function esc(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-/* ── Render polaroid message ── */
-function addPolaroid(role, text) {
-  const empty = document.querySelector('.empty-journal');
-  if(empty) empty.remove();
-
-  const isSelf = role === 'user';
-  const el = document.createElement('div');
-  el.className = `polaroid ${isSelf ? 'self' : 'other'}`;
-
-  const caption = isSelf ? '旅人' : '远方来信';
-  const inside = text
-    ? esc(text)
-    : '<span class="cursor"></span>';
-
-  el.innerHTML = `
-    <div class="polaroid-body">
-      <div class="content">${inside}</div>
-    </div>
-    <div class="caption">${caption}</div>`;
-
-  document.getElementById('msgs').appendChild(el);
-  el.scrollIntoView({behavior:'smooth'});
-  return el.querySelector('.content');
-}
-
-/* ── Send message ── */
-async function send() {
-  const input = document.getElementById('prompt');
-  const prompt = input.value.trim();
-  if(!prompt) return;
-  if(!token) return note('先翻开手札吧', true);
-
-  input.value = '';
-
-  // Bump page counter
-  pageCount++;
-  document.getElementById('page-num').textContent = `第 ${pageCount} 页`;
-
-  // Add user polaroid
-  addPolaroid('user', prompt);
-
-  // Add AI polaroid
-  const aiContent = addPolaroid('assistant', '');
-  let full = '';
-
-  try {
-    const resp = await fetch(`${API}/agent/stream`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body:JSON.stringify({message:prompt})
-    });
-
-    const ct = resp.headers.get('content-type')||'';
-
-    if(ct.includes('text/event-stream')) {
-      const reader = resp.body.getReader();
-      const dec = new TextDecoder();
-      let buf = '';
-
-      while(true) {
-        const {done, value} = await reader.read();
-        if(done) break;
-        buf += dec.decode(value, {stream:true});
-        const lines = buf.split('\n');
-        buf = lines.pop()||'';
-
-        for(const line of lines) {
-          if(line.startsWith('data: ') && !line.includes('[DONE]')) {
-            try {
-              const c = JSON.parse(line.slice(6));
-              if(c.type === 'content') {
-                // 最终文本 — 打字机效果
-                full += c.text||'';
-                aiContent.innerHTML = esc(full) + '<span class="cursor"></span>';
-                aiContent.parentElement.parentElement.scrollIntoView({behavior:'smooth'});
-              } else if(c.type === 'tool_call') {
-                // Agent 在调工具 — 显示状态提示
-                aiContent.innerHTML = esc(full) +
-                  '<span style="color:var(--ink-fade);font-size:0.85rem;">🔍 ' + esc(c.name) + '…</span>' +
-                  '<span class="cursor"></span>';
-              } else if(c.type === 'tool_result') {
-                // 工具执行完 — 短暂提示
-                aiContent.innerHTML = esc(full) +
-                  '<span style="color:var(--leaf);font-size:0.85rem;">✓ ' + esc(c.name) + ' 完成</span>' +
-                  '<span class="cursor"></span>';
-              }
-              // thinking 和 done 事件不在内容区显示
-            } catch(_){}
-          }
-        }
-      }
-      aiContent.innerHTML = esc(full);
-    } else {
-      const d = await resp.json();
-      full = d.answer||d.message||JSON.stringify(d);
-      aiContent.innerHTML = esc(full);
-    }
-  } catch(e) {
-    aiContent.innerHTML = `<span style="color:var(--accent)">墨水洒了… ${esc(e.message)}</span>`;
-  }
-}
-</script>
+  <div class="auth-modal" id="authModal"><div class="auth-card"><button class="close" onclick="closeAuth()">×</button><div class="eyebrow">WELCOME ABOARD</div><h2 id="authTitle">回来继续探索</h2><p id="authDesc">登录后，TRAVERSO 会记住你的旅行偏好。</p><div class="tabs"><button class="tab on" data-auth="login" onclick="authTab('login')">登录</button><button class="tab" data-auth="register" onclick="authTab('register')">注册</button></div><input class="field" id="authUser" autocomplete="username" placeholder="用户名"><input class="field" id="authPass" type="password" autocomplete="current-password" placeholder="密码"><button class="auth-action" id="authAction" onclick="authenticate()">登录并开始策划</button></div></div><div class="toast" id="toast"></div>
+  <script>
+    const API='http://127.0.0.1:8000'; let token=sessionStorage.getItem('traverso_token'), username=sessionStorage.getItem('traverso_username'), sending=false, turns=0, toolCalls=0, authMode='login';
+    const $=id=>document.getElementById(id); const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    function toast(message){const el=$('toast');el.textContent=message;el.className='toast show';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.className='toast',2600)}
+    function updateSession(){const logged=!!token;$('loginTop').style.display=logged?'none':'';$('logoutBtn').style.display=logged?'':'none';$('profileName').textContent=logged?username:'访客模式';$('profileState').textContent=logged?'偏好已同步':'准备探索';$('avatar').textContent=logged?username.slice(0,1).toUpperCase():'G';}
+    function openAuth(){ $('authModal').classList.add('open'); } function closeAuth(){ $('authModal').classList.remove('open'); }
+    function authTab(mode){authMode=mode;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.auth===mode));$('authTitle').textContent=mode==='login'?'回来继续探索':'创建你的旅行档案';$('authDesc').textContent=mode==='login'?'登录后，TRAVERSO 会记住你的旅行偏好。':'注册后即可保存行程、偏好和旅行记忆。';$('authAction').textContent=mode==='login'?'登录并开始策划':'创建账户';}
+    async function authenticate(){const u=$('authUser').value.trim(),p=$('authPass').value;if(!u||!p)return toast('请输入用户名和密码');try{const r=await fetch(`${API}/${authMode==='login'?'login':'register'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});const d=await r.json();if(authMode==='register'){toast(d.message||'注册完成，请登录');if((d.message||'').includes('成功'))authTab('login');return;}if(d.token){token=d.token;username=u;sessionStorage.setItem('traverso_token',token);sessionStorage.setItem('traverso_username',username);updateSession();closeAuth();toast(`欢迎回来，${u}`)}else toast(d.message||'登录失败')}catch(e){toast('无法连接服务，请确认后端已启动')}}
+    function logout(){token=null;username=null;sessionStorage.removeItem('traverso_token');sessionStorage.removeItem('traverso_username');updateSession();newTrip();toast('已退出登录');}
+    function newTrip(){turns=0;toolCalls=0;$('conversation').replaceChildren();$('welcome').style.display='block';$('chat').style.display='none';$('viewName').textContent='新的灵感';updateMetrics();}
+    function openChat(){ $('welcome').style.display='none';$('chat').style.display='flex';$('viewName').textContent='旅行策划';$('chatPrompt').focus();}
+    function quickSend(text){$('landingPrompt').value=text;submitLanding();} function submitLanding(){const text=$('landingPrompt').value.trim();if(!text)return $('landingPrompt').focus();openChat();$('chatPrompt').value=text;send();}
+    function updateMetrics(ms){$('turnCount').textContent=String(turns).padStart(2,'0');$('toolCount').textContent=String(toolCalls).padStart(2,'0');$('timeCount').textContent=ms?`${(ms/1000).toFixed(1)}s`:'—';}
+    function render(text){let h=esc(text);h=h.replace(/^###\s*(.+)$/gm,'<h3>$1</h3>').replace(/^##\s*(.+)$/gm,'<h2>$1</h2>').replace(/^#\s*(.+)$/gm,'<h1>$1</h1>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>');const blocks=h.split(/\n\s*\n/).filter(Boolean);return blocks.map(b=>/^<h\d/.test(b)?b:`<p>${b.replace(/\n/g,'<br>')}</p>`).join('');}
+    function addMessage(role,text){const m=document.createElement('article');m.className=`message ${role}`;m.innerHTML=role==='user'?`<div class="bubble answer">${render(text)}</div><div class="face">${esc((username||'你').slice(0,1).toUpperCase())}</div>`:`<div class="face">T</div><div class="bubble"><div class="tools"></div><div class="answer"></div></div>`;$('conversation').appendChild(m);m.scrollIntoView({behavior:'smooth',block:'end'});return m;}
+    function addTool(container,name){const labels={get_weather:'天气',search_spots:'景点搜索',get_user_profile:'旅行偏好',save_user_preference:'保存偏好',get_travel_history:'旅行记忆',save_travel_history:'保存行程',generate_travel_plan:'生成行程',recommend_destinations:'目的地推荐',analyze_travel_style:'偏好分析'};const el=document.createElement('span');el.className='tool running';el.textContent=`◌ ${labels[name]||name}`;container.appendChild(el);toolCalls++;updateMetrics();return el;}
+    async function send(){const input=$('chatPrompt'),prompt=input.value.trim();if(!prompt||sending)return;if(!token){openAuth();toast('登录后即可生成并保存专属旅行方案');return;}sending=true;$('chatSend').disabled=true;input.value='';turns++;updateMetrics();addMessage('user',prompt);const response=addMessage('assistant','');const tools=response.querySelector('.tools'),answer=response.querySelector('.answer');let all='',lastTool,t0=performance.now();try{const r=await fetch(`${API}/agent/stream`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({message:prompt})});if(!r.ok)throw new Error('请求失败');if(!(r.headers.get('content-type')||'').includes('text/event-stream')){const d=await r.json();all=d.answer||d.message||'暂未获得结果';answer.innerHTML=render(all);return;}const reader=r.body.getReader(),decoder=new TextDecoder();let buffer='';while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop()||'';for(const line of lines){if(!line.startsWith('data: '))continue;let e;try{e=JSON.parse(line.slice(6))}catch{continue}if(e.type==='tool_call')lastTool=addTool(tools,e.name);else if(e.type==='tool_result'&&lastTool){lastTool.classList.remove('running');lastTool.textContent+=' · done'}else if(e.type==='content'){all+=e.text||'';answer.innerHTML=render(all)+'<span class="cursor"></span>';response.scrollIntoView({behavior:'smooth',block:'end'});}}}answer.innerHTML=render(all||'我暂时没有生成有效回复，请再试一次。');}catch(e){answer.innerHTML=`<p style="color:var(--danger)">连接出现问题：${esc(e.message)}</p>`;}finally{sending=false;$('chatSend').disabled=false;updateMetrics(performance.now()-t0);input.focus();}}
+    function bindTextarea(id){const el=$(id);el.addEventListener('input',()=>{el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'});el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();id==='landingPrompt'?submitLanding():send();}})}bindTextarea('landingPrompt');bindTextarea('chatPrompt');updateSession();
+  </script>
 </body>
 </html>
