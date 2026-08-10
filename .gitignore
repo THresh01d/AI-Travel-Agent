@@ -16,6 +16,9 @@ chroma_data/
 # 本地模型
 local_model/
 
+# 运行时日志（含用户查询内容，不提交）
+logs/
+
 # IDE配置
 .vscode/
 .idea/

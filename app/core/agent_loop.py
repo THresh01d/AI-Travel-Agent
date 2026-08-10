@@ -1,22 +1,11 @@
-"""
-流程：
-  用户输入
-    ↓
-  [while 循环开始]
-    ↓
-  调用 DeepSeek（带工具定义）
-    ↓
-  DeepSeek 返回 tool_calls? ──是──→ 执行工具 → 把结果追加到对话 → 回到循环开头
-    ↓ 否
-  返回文本内容 → 结束
-"""
-
 import json
 import httpx
+import time
 from app.core.tool_registry import TOOL_DEFINITIONS, execute_tool
+from app.core.trace import Trace
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
-MAX_ITERATIONS = 5  
+MAX_ITERATIONS = 5
 
 
 # ReAct 模式的 System Prompt
@@ -69,6 +58,9 @@ async def run_agent_loop(
         {"type": "content", "text": "..."} → 最终文本（流式逐字）
         {"type": "done", "stats": {...}}  → 对话结束，附带统计
     """
+    # ---- 0. 创建 Trace（可观测性） ----
+    trace = Trace(user_id, user_message)
+
     # ---- 1. 构建消息列表 ----
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -100,6 +92,7 @@ async def run_agent_loop(
         yield {"type": "thinking", "iteration": iteration}
 
         # ---- 3a. 调用 DeepSeek（带工具定义）----
+        llm_start = time.time()
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 response = await client.post(
@@ -112,14 +105,18 @@ async def run_agent_loop(
                     }
                 )
             result = response.json()
+            llm_ms = int((time.time() - llm_start) * 1000)
         except Exception as e:
             yield {"type": "content", "text": f"抱歉，AI 服务暂时不可用：{e}"}
+            trace.finish()
             yield {"type": "done", "stats": stats}
             return
 
-        # 记录 token 消耗
-        if "usage" in result:
-            stats["total_tokens"] += result["usage"].get("total_tokens", 0)
+        # 记录 token 消耗 + 写 Trace
+        prompt_tokens = result.get("usage", {}).get("prompt_tokens", 0)
+        completion_tokens = result.get("usage", {}).get("completion_tokens", 0)
+        stats["total_tokens"] += result.get("usage", {}).get("total_tokens", 0)
+        trace.add_llm_call("deepseek-chat", prompt_tokens, completion_tokens, llm_ms)
 
         choice = result["choices"][0]
         message = choice["message"]
@@ -155,8 +152,11 @@ async def run_agent_loop(
                     "args": args,
                 }
 
-                # 执行工具
+                # 执行工具（记录耗时 + 写 Trace）
+                tool_start = time.time()
                 tool_result = await execute_tool(tool_name, args, api_key, user_id)
+                tool_ms = int((time.time() - tool_start) * 1000)
+                trace.add_tool_call(tool_name, args, tool_ms, tool_result)
 
                 # 通知前端：工具执行完毕
                 yield {
@@ -180,11 +180,13 @@ async def run_agent_loop(
             content = message["content"]
             # 因为是非流式调用，整段返回
             yield {"type": "content", "text": content}
+            trace.finish()
             yield {"type": "done", "stats": stats}
             return
 
         # 情况3：既没有 tool_calls 也没有 content → 异常，安全退出
         yield {"type": "content", "text": "抱歉，我暂时无法处理这个请求，请换个方式试试。"}
+        trace.finish()
         yield {"type": "done", "stats": stats}
         return
 
@@ -193,4 +195,5 @@ async def run_agent_loop(
         "type": "content",
         "text": f"抱歉，这个请求比较复杂，我在 {MAX_ITERATIONS} 轮思考后仍未能完成。请尝试用更简单的方式描述您的需求。"
     }
+    trace.finish()
     yield {"type": "done", "stats": stats}

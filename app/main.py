@@ -13,6 +13,7 @@ from app.services.auth_service import create_token, verify_token, hash_password,
 from app.services.dependency import get_current_user
 from app.services.conversation import add_message, get_history
 from app.core.agent_loop import run_agent_loop
+from app.core.trace import get_recent_traces
 
 from contextlib import asynccontextmanager
 
@@ -218,3 +219,10 @@ def profile(
 @app.get("/app")
 def serve_frontend():
     return FileResponse("static/index.html")
+
+
+@app.get("/debug/traces")
+def debug_traces(limit: int = 20):
+    """Debug 端点：返回最近 N 条 Agent 执行 Trace（供调试面板查看）"""
+    traces = get_recent_traces(limit)
+    return {"count": len(traces), "traces": traces}
