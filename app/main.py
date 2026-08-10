@@ -220,6 +220,9 @@ def profile(
 def serve_frontend():
     return FileResponse("static/index.html")
 
+@app.get("/debug")
+def serve_debug_panel():
+    return FileResponse("static/debug.html")
 
 @app.get("/debug/traces")
 def debug_traces(limit: int = 20):

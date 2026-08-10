@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRAVERSO · Agent Trace 调试台</title>
+  <style>
+    :root { --ink:#eaf0ff; --muted:#8e9ab6; --line:rgba(190,207,247,.13); --panel:rgba(15,24,47,.66); --cyan:#7ce8f4; --violet:#9d8cff; --lime:#c7fa76; --danger:#ff8d9d; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#080e1d; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+    .shell { display:grid; grid-template-columns:320px 1fr; min-height:100vh; }
+    .sidebar { border-right:1px solid var(--line); padding:20px 16px; background:rgba(7,13,29,.66); overflow-y:auto; }
+    .brand { font-weight:800; letter-spacing:.12em; padding-bottom:14px; border-bottom:1px solid var(--line); }
+    .total { font-size:12px; color:var(--muted); padding:10px 0; }
+    .list { display:flex; flex-direction:column; gap:8px; }
+    .trace-item { border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; background:var(--panel); transition:.15s; }
+    .trace-item:hover { border-color:var(--cyan); }
+    .trace-item.active { border-color:var(--violet); }
+    .trace-item .q { font-size:13px; font-weight:600; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .trace-item .meta { font-size:11px; color:var(--muted); }
+    .main { display:flex; flex-direction:column; padding:20px 28px; gap:14px; }
+    .controls { display:flex; gap:8px; align-items:center; }
+    .controls button { border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--ink); border-radius:10px; padding:8px 14px; cursor:pointer; font-size:13px; }
+    .controls button:hover { border-color:var(--cyan); }
+    .controls select { border:1px solid var(--line); background:#111b35; color:var(--ink); border-radius:10px; padding:8px; }
+    .stats { display:flex; gap:18px; font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:12px; }
+    .stats b { color:var(--cyan); font-size:14px; margin-right:4px; }
+    .detail { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
+    .step { border:1px solid var(--line); border-radius:12px; padding:12px 14px; background:var(--panel); }
+    .step.llm { border-left:3px solid var(--violet); }
+    .step.tool { border-left:3px solid var(--cyan); }
+    .step.bad { border-left:3px solid var(--danger); }
+    .step.now { outline:2px solid var(--lime); }
+    .step .head { font-weight:700; font-size:13px; margin-bottom:6px; }
+    .step .body { font-size:12px; color:var(--muted); line-height:1.6; word-break:break-all; }
+    .step .dur { font-size:11px; color:var(--cyan); }
+    .empty { color:var(--muted); font-size:14px; text-align:center; padding-top:80px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- 左栏 -->
+    <aside class="sidebar">
+      <div class="brand">TRAVERSO · TRACE</div>
+      <div id="totalCount" class="total">暂无记录</div>
+      <div id="list" class="list"></div>
+    </aside>
+    <!-- 右栏 -->
+    <main class="main">
+      <div class="controls">
+        <button onclick="refresh()">↻ 刷新</button>
+        <button id="playBtn">▶ 播放</button>
+        <button id="pauseBtn">⏸ 暂停</button>
+        <button id="prevBtn">⏮ 上一步</button>
+        <button id="nextBtn">⏭ 下一步</button>
+        <select id="speed">
+          <option value="1200">1x</option>
+          <option value="600">2x</option>
+          <option value="300">4x</option>
+        </select>
+      </div>
+      <div id="stats" class="stats"></div>
+      <div id="detail" class="detail"></div>
+      <div id="empty" class="empty">还没有 Trace 记录，先去 /app 用 Agent 聊一句</div>
+    </main>
+  </div>
+  <script>
+    let traces = [];          // 当前拿到的全部 trace
+    let current = null;       // 当前选中的 trace
+
+    // 毫秒 → "12.3s" 或 "45ms"
+    function fmtTime(ms) {
+    if (ms >= 1000) return (ms / 1000).toFixed(1) + "s";
+    return ms + "ms";
+    }
+
+    // 用户点列表某一项 → 选中并渲染详情
+    function selectTrace(index) {
+    current = traces[index];
+    // 高亮当前项
+    document.querySelectorAll(".trace-item").forEach((el, i) => {
+        el.classList.toggle("active", i === index);
+    });
+    renderDetail();
+    }
+
+    function renderDetail() {
+    const detail = document.getElementById("detail");
+    const stats = document.getElementById("stats");
+    const empty = document.getElementById("empty");
+    if (!current) return;
+
+    empty.style.display = "none";
+
+    // 统计卡
+    const t = current.totals;
+    stats.innerHTML =
+        "<div><b>" + t.llm_calls + "</b> 轮LLM调用</div>" +
+        "<div><b>" + t.tool_calls + "</b> 次工具调用</div>" +
+        "<div><b>" + t.total_tokens + "</b> 总token</div>" +
+        "<div><b>" + fmtTime(t.duration_ms) + "</b> 总耗时</div>";
+
+    detail.innerHTML = "";
+    stepEls = [];
+    (current.steps || []).forEach((s) => {
+        const div = renderStep(s, stepEls.length);
+        stepEls.push(div);
+        detail.appendChild(div);
+    });
+    curStep = -1;      // 还没开始播放
+    stepTo(0);         // 先显示第 1 步
+    }
+
+    // 把单步 step 渲染成一个 div，返回它
+    function renderStep(s, i) {
+    const div = document.createElement("div");
+    const dur = fmtTime(s.duration_ms);
+
+    if (s.type === "llm_call") {
+        div.className = "step llm";
+        div.innerHTML =
+        '<div class="head">💭 第 ' + (i + 1) + ' 步 · LLM 思考</div>' +
+        '<div class="body">模型 ' + s.model + " · prompt " + s.prompt_tokens +
+        " → completion " + s.completion_tokens + "</div>" +
+        '<div class="dur">⏱ ' + dur + "</div>";
+    } else {
+        // tool_call
+        div.className = "step tool";
+        const result = (s.result || "").toString();
+        // 结果里出现"未找到/失败/错误" → 标红
+        if (/未找到|失败|错误|exception/i.test(result)) div.classList.add("bad");
+        div.innerHTML =
+        '<div class="head">🔧 ' + s.name + "</div>" +
+        '<div class="body">参数 ' + JSON.stringify(s.args || {}) + "</div>" +
+        '<div class="body">结果 ' + result.slice(0, 120) + "</div>" +
+        '<div class="dur">⏱ ' + dur + "</div>";
+    }
+    return div;
+    }
+
+    // 请求 /debug/traces 并渲染左栏列表
+    async function loadTraces() {
+    try {
+        const resp = await fetch("/debug/traces?limit=20");
+        const data = await resp.json();
+        traces = data.traces || [];
+    } catch (e) {
+        traces = [];
+    }
+    renderList();
+    }
+
+    function renderList() {
+    const list = document.getElementById("list");
+    const count = document.getElementById("totalCount");
+    list.innerHTML = "";
+    count.textContent = "共 " + traces.length + " 条记录";
+    if (traces.length === 0) return;
+    document.getElementById("empty").style.display =
+    traces.length === 0 ? "block" : "none";
+    traces.forEach((t, i) => {
+        const item = document.createElement("div");
+        item.className = "trace-item" + (i === 0 ? " active" : "");
+        item.innerHTML =
+        '<div class="q">' + (t.query || "(无问题)") + "</div>" +
+        '<div class="meta">' + fmtTime(t.totals.duration_ms) +
+        " · " + t.totals.total_tokens + " tok · " +
+        t.totals.llm_calls + "轮LLM</div>";
+        item.addEventListener("click", () => selectTrace(i));
+        list.appendChild(item);
+    });
+    }
+
+    loadTraces();   // 页面加载完就请求一次
+
+    let stepEls = [];   // 已渲染的步骤 DOM 数组
+    let curStep = -1;   // 当前播放到的步骤下标
+    let timer = null;   // 定时器句柄
+
+    // 显示到第 n 步（0 起），高亮当前，自动滚动
+    function stepTo(n) {
+    if (n < 0 || n >= stepEls.length) return;
+    curStep = n;
+    stepEls.forEach((el, i) => el.classList.toggle("now", i === n));
+    stepEls[n].scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    // 播放：定时器每 interval ms 前进一步
+    function play() {
+    pause();
+    if (!stepEls.length) return;
+    if (curStep >= stepEls.length - 1) stepTo(0);   // 播完了从头来
+    const interval = parseInt(document.getElementById("speed").value, 10);
+    timer = setInterval(() => {
+        if (curStep < stepEls.length - 1) {
+        stepTo(curStep + 1);
+        } else {
+        pause();                                    // 播完了自动停
+        }
+    }, interval);
+    }
+
+    function pause() {
+    if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    document.getElementById("playBtn").addEventListener("click", play);
+    document.getElementById("pauseBtn").addEventListener("click", pause);
+    document.getElementById("prevBtn").addEventListener("click", () => stepTo(curStep - 1));
+    document.getElementById("nextBtn").addEventListener("click", () => stepTo(curStep + 1));
+
+    // 手动刷新列表
+    function refresh() { loadTraces(); }
+    </script>
+</body>
+</html>
