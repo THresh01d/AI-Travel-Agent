@@ -22,3 +22,6 @@ logs/
 # IDE配置
 .vscode/
 .idea/
+
+# AI 开发工具生成的内部文档
+docs/superpowers/

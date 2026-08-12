@@ -188,8 +188,5 @@ Task 3 点列表会报错，因为 `selectTrace` 是 Task 4 才写的函数。**
 ```
 
 ## 下一步
-
-- 评估框架（测试场景 + LLM-as-Judge）——体现质量意识
-- Multi-Agent 认知（面试高频：你的项目怎么升级成 Planner+Executor）
 - http_client.py 接入（半成品收尾）
 - Trace 升级 Span 树（记录工具内部的 LLM 调用）

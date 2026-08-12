@@ -181,8 +181,5 @@ config.py 的 deepseek_api_key
 
 ## 下一步
 
-- 私人电台 Demo 模式（脱敏示例歌库 + 启动开关）——面试能现场演示
-- 私人电台反馈闭环（点赞/讨厌/听腻 → 可解释重排）
-- 私人电台音乐画像（SQL 聚合 → 标签云展示）
 - Docker 真正跑一次（Dockerfile 写了但没验证过）
 - Trace 升级 Span 树（记录工具内部的 LLM 调用）
