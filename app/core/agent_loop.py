@@ -1,8 +1,8 @@
 import json
-import httpx
 import time
 from app.core.tool_registry import TOOL_DEFINITIONS, execute_tool
 from app.core.trace import Trace
+from app.core.http_client import get_deepseek_client
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 MAX_ITERATIONS = 5
@@ -37,7 +37,6 @@ SYSTEM_PROMPT = """你是一个智能旅行规划助手。你需要通过多步�
 
 
 async def run_agent_loop(
-    api_key: str,
     user_message: str,
     user_id: int,
     conversation_history: list[dict] | None = None
@@ -46,7 +45,6 @@ async def run_agent_loop(
     Agent 主循环 — 异步生成器，yield 结构化事件。
 
     参数：
-        api_key: DeepSeek API Key
         user_message: 用户当前输入
         user_id: 当前登录用户 ID
         conversation_history: 之前的对话历史，格式 [{"role": "...", "content": "..."}]
@@ -78,11 +76,6 @@ async def run_agent_loop(
         "total_tokens": 0,
     }
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
     # ---- 3. ReAct 主循环 ----
     #不是选一个工具，而是在循环里反复调用 LLM
     for iteration in range(1, MAX_ITERATIONS + 1):
@@ -94,16 +87,15 @@ async def run_agent_loop(
         # ---- 3a. 调用 DeepSeek（带工具定义）----
         llm_start = time.time()
         try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                response = await client.post(
-                    DEEPSEEK_API_URL,
-                    headers=headers,
-                    json={
-                        "model": "deepseek-chat",
-                        "messages": messages,
-                        "tools": TOOL_DEFINITIONS,
-                    }
-                )
+            client = get_deepseek_client()
+            response = await client.post(
+                DEEPSEEK_API_URL,
+                json={
+                    "model": "deepseek-chat",
+                    "messages": messages,
+                    "tools": TOOL_DEFINITIONS,
+                }
+            )
             result = response.json()
             llm_ms = int((time.time() - llm_start) * 1000)
         except Exception as e:
@@ -154,7 +146,7 @@ async def run_agent_loop(
 
                 # 执行工具（记录耗时 + 写 Trace）
                 tool_start = time.time()
-                tool_result = await execute_tool(tool_name, args, api_key, user_id)
+                tool_result = await execute_tool(tool_name, args, user_id)
                 tool_ms = int((time.time() - tool_start) * 1000)
                 trace.add_tool_call(tool_name, args, tool_ms, tool_result)
 

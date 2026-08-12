@@ -11,13 +11,13 @@
 """
 
 import json
-import httpx
+from app.core.http_client import get_deepseek_client
 from app.database import load_profile, save_profile, load_history, save_history
 from app.services.weather_service import get_weather
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 
-async def _handle_get_weather(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_get_weather(args: dict, user_id: int) -> str:
     """查询某个城市未来几天天气"""
     city = args.get("city", "")
     days = args.get("days", 3) 
@@ -30,14 +30,14 @@ async def _handle_get_weather(api_key: str, args: dict, user_id: int) -> str:
         return f"天气查询失败：{e}"
 
 
-async def _handle_search_spots(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_search_spots(args: dict, user_id: int) -> str:
     query = args.get("query", "")
     if not query:
         return "请提供搜索关键词"
     return f"未在本地知识库中找到关于'{query}'的信息。请根据你对该目的地的了解直接推荐景点和美食。"
 
 
-async def _handle_get_user_profile(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_get_user_profile(args: dict, user_id: int) -> str:
     """读取用户的旅行偏好"""
     try:
         profile = load_profile(user_id)
@@ -48,7 +48,7 @@ async def _handle_get_user_profile(api_key: str, args: dict, user_id: int) -> st
         return f"读取用户偏好失败：{e}"
 
 
-async def _handle_save_user_preference(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_save_user_preference(args: dict, user_id: int) -> str:
     """保存一条用户偏好"""
     key = args.get("key", "")
     value = args.get("value", "")
@@ -61,7 +61,7 @@ async def _handle_save_user_preference(api_key: str, args: dict, user_id: int) -
         return f"保存偏好失败：{e}"
 
 
-async def _handle_get_travel_history(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_get_travel_history(args: dict, user_id: int) -> str:
     """读取用户的历史旅行记录"""
     try:
         history = load_history(user_id)
@@ -76,7 +76,7 @@ async def _handle_get_travel_history(api_key: str, args: dict, user_id: int) -> 
         return f"读取旅行历史失败：{e}"
 
 
-async def _handle_save_travel_history(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_save_travel_history(args: dict, user_id: int) -> str:
     """保存一条旅行记录"""
     city = args.get("city", "")
     days = args.get("days", 0)
@@ -90,7 +90,7 @@ async def _handle_save_travel_history(api_key: str, args: dict, user_id: int) ->
         return f"保存旅行记录失败：{e}"
 
 
-async def _handle_generate_plan(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_generate_plan(args: dict, user_id: int) -> str:
     city = args.get("city", "")
     days = args.get("days", 3)
     budget = args.get("budget", 0)
@@ -101,11 +101,6 @@ async def _handle_generate_plan(api_key: str, args: dict, user_id: int) -> str:
 
     if not city:
         return "错误：未提供目的地城市"
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
 
     prompt = f"""请根据以下信息生成详细旅游攻略：
 
@@ -125,25 +120,24 @@ async def _handle_generate_plan(api_key: str, args: dict, user_id: int) -> str:
 按Day1 Day2格式输出。"""
 
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                DEEPSEEK_API_URL,
-                headers=headers,
-                json={
-                    "model": "deepseek-chat",
-                    "messages": [
-                        {"role": "system", "content": "你是专业旅游规划师"},
-                        {"role": "user", "content": prompt}
-                    ]
-                }
-            )
+        client = get_deepseek_client()
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            json={
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "system", "content": "你是专业旅游规划师"},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+        )
         result = response.json()
         return result["choices"][0]["message"]["content"]
     except Exception as e:
         return f"攻略生成失败：{e}"
 
 
-async def _handle_recommend(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_recommend(args: dict, user_id: int) -> str:
     """根据用户偏好和历史，推荐目的地"""
     try:
         profile = load_profile(user_id)
@@ -151,36 +145,30 @@ async def _handle_recommend(api_key: str, args: dict, user_id: int) -> str:
     except Exception as e:
         return f"读取用户数据失败：{e}"
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
     prompt = f"""用户偏好：{profile if profile else "无"}
 旅行历史：{history if history else "无"}
 
 请推荐3个适合该用户的旅游目的地，并说明推荐理由。"""
 
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                DEEPSEEK_API_URL,
-                headers=headers,
-                json={
-                    "model": "deepseek-chat",
-                    "messages": [
-                        {"role": "system", "content": "你是专业旅行顾问"},
-                        {"role": "user", "content": prompt}
-                    ]
-                }
-            )
+        client = get_deepseek_client()
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            json={
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "system", "content": "你是专业旅行顾问"},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+        )
         result = response.json()
         return result["choices"][0]["message"]["content"]
     except Exception as e:
         return f"推荐生成失败：{e}"
 
 
-async def _handle_analyze(api_key: str, args: dict, user_id: int) -> str:
+async def _handle_analyze(args: dict, user_id: int) -> str:
     """分析用户的旅行习惯和风格"""
     try:
         profile = load_profile(user_id)
@@ -188,29 +176,23 @@ async def _handle_analyze(api_key: str, args: dict, user_id: int) -> str:
     except Exception as e:
         return f"读取用户数据失败：{e}"
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
     prompt = f"""用户偏好：{profile if profile else "无"}
 旅行历史：{history if history else "无"}
 
 请分析该用户的旅行风格、预算水平、出行习惯，并给出未来旅行建议。"""
 
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                DEEPSEEK_API_URL,
-                headers=headers,
-                json={
-                    "model": "deepseek-chat",
-                    "messages": [
-                        {"role": "system", "content": "你是资深旅行分析师"},
-                        {"role": "user", "content": prompt}
-                    ]
-                }
-            )
+        client = get_deepseek_client()
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            json={
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "system", "content": "你是资深旅行分析师"},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+        )
         result = response.json()
         return result["choices"][0]["message"]["content"]
     except Exception as e:
@@ -362,7 +344,7 @@ TOOL_HANDLERS = {
 }
 
 
-async def execute_tool(tool_name: str, args: dict, api_key: str, user_id: int) -> str:
+async def execute_tool(tool_name: str, args: dict, user_id: int) -> str:
     """
     执行一个工具并返回结果字符串。
 
@@ -373,4 +355,4 @@ async def execute_tool(tool_name: str, args: dict, api_key: str, user_id: int) -
     handler = TOOL_HANDLERS.get(tool_name)
     if handler is None:
         return f"错误：未知工具 '{tool_name}'，可用工具：{list(TOOL_HANDLERS.keys())}"
-    return await handler(api_key, args, user_id)
+    return await handler(args, user_id)

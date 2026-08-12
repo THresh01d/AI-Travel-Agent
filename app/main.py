@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json as json_lib
 
-from app.core.config import settings
 from app.core.middleware import exception_handler_middleware
 from app.database import load_profile, load_history
 from app.database import create_user, get_user_by_username
@@ -14,6 +13,7 @@ from app.services.dependency import get_current_user
 from app.services.conversation import add_message, get_history
 from app.core.agent_loop import run_agent_loop
 from app.core.trace import get_recent_traces
+from app.core.http_client import get_deepseek_client, get_weather_client
 
 from contextlib import asynccontextmanager
 
@@ -21,7 +21,9 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动时执行
     yield
-    # 关闭时执行（你暂时不需要做什么，留空）
+    # 关闭时释放连接池
+    await get_deepseek_client().aclose()
+    await get_weather_client().aclose()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -117,7 +119,7 @@ async def agent(
     final_answer = ""
     stats = {}
     async for event in run_agent_loop(
-        settings.deepseek_api_key, req.message, user_id, history
+        req.message, user_id, history
     ):
         if event["type"] == "content":
             final_answer = event["text"]
@@ -143,7 +145,7 @@ async def agent_stream(
     async def generate():
         full_answer = ""
         async for event in run_agent_loop(
-            settings.deepseek_api_key, req.message, user_id, history
+            req.message, user_id, history
         ):
             # 把每个事件序列化为 SSE 格式
             yield f"data: {json_lib.dumps(event, ensure_ascii=False)}\n\n"

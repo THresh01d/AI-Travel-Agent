@@ -1,4 +1,4 @@
-import httpx
+from app.core.http_client import get_weather_client
 
 # 常用城市经纬度映射（避免每次都查）
 CITY_COORDS = {
@@ -54,9 +54,9 @@ async def get_weather(city: str, days: int = 3) -> str:
         "timezone": "Asia/Shanghai",
     }
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(url, params=params)
-        data = response.json()
+    client = get_weather_client()
+    response = await client.get(url, params=params)
+    data = response.json()
 
     daily = data["daily"]
     lines = [f"【{city}未来{days}天天气】"]
