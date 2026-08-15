@@ -83,3 +83,54 @@ def load_history(user_id):
     cursor.close()
     conn.close()
     return results
+
+def init_db():
+    """启动时自动建表（幂等：表已存在就不重复建）"""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            username VARCHAR(50) NOT NULL UNIQUE,
+            password VARCHAR(100) NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_profile (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            user_id INT,
+            profile_key VARCHAR(50),
+            profile_value TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS travel_history (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            user_id INT,
+            destination VARCHAR(50),
+            days INT,
+            budget INT,
+            created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversation_messages (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            user_id INT,
+            role VARCHAR(10),
+            content TEXT,
+            created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            INDEX idx_user_time (user_id, id)
+        )
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()

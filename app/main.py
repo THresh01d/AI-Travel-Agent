@@ -8,6 +8,7 @@ import json as json_lib
 from app.core.middleware import exception_handler_middleware
 from app.database import load_profile, load_history
 from app.database import create_user, get_user_by_username
+from app.database import init_db
 from app.services.auth_service import create_token, verify_token, hash_password, verify_password
 from app.services.dependency import get_current_user
 from app.services.conversation import add_message, get_history
@@ -20,6 +21,7 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动时执行
+    init_db()      
     yield
     # 关闭时释放连接池
     await get_deepseek_client().aclose()
