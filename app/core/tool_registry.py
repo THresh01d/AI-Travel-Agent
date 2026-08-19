@@ -30,13 +30,6 @@ async def _handle_get_weather(args: dict, user_id: int) -> str:
         return f"天气查询失败：{e}"
 
 
-async def _handle_search_spots(args: dict, user_id: int) -> str:
-    query = args.get("query", "")
-    if not query:
-        return "请提供搜索关键词"
-    return f"未在本地知识库中找到关于'{query}'的信息。请根据你对该目的地的了解直接推荐景点和美食。"
-
-
 async def _handle_get_user_profile(args: dict, user_id: int) -> str:
     """读取用户的旅行偏好"""
     try:
@@ -218,21 +211,6 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
-            "name": "search_spots",
-            "description": "搜索本地知识库中的旅游信息。如果本地无结果，请根据你的训练知识直接推荐景点和美食。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "搜索关键词，如：成都美食、杭州景点"},
-                    "top_k": {"type": "integer", "description": "返回结果数量，默认3"},
-                },
-                "required": ["query"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "get_user_profile",
             "description": "获取当前用户的旅行偏好设置（如旅行风格、作息习惯、预算水平等）。在做推荐或规划前应该先了解用户偏好。",
             "parameters": {
@@ -296,7 +274,7 @@ TOOL_DEFINITIONS = [
                     "city": {"type": "string", "description": "目的地城市"},
                     "days": {"type": "integer", "description": "旅行天数"},
                     "budget": {"type": "integer", "description": "旅行预算"},
-                    "spots": {"type": "string", "description": "从 search_spots 获取到的景点信息"},
+                    "spots": {"type": "string", "description": "景点信息（可选）"},
                     "weather": {"type": "string", "description": "从 get_weather 获取到的天气信息"},
                     "profile": {"type": "string", "description": "从 get_user_profile 获取到的用户偏好"},
                     "user_message": {"type": "string", "description": "用户原始输入"},
@@ -333,7 +311,6 @@ TOOL_DEFINITIONS = [
 
 TOOL_HANDLERS = {
     "get_weather": _handle_get_weather,
-    "search_spots": _handle_search_spots,
     "get_user_profile": _handle_get_user_profile,
     "save_user_preference": _handle_save_user_preference,
     "get_travel_history": _handle_get_travel_history,
